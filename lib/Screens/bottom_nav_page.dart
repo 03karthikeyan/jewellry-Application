@@ -18,7 +18,7 @@ class _BottomNavPageState extends State<BottomNavPage> {
     HomePage(), // Home Page
     CategoryPage(), // Category Page
     OrdersPage(), // Orders Page
-    ProfilePage(), // Profile Page
+    ProfilePage(userId: ''), // Profile Page
     MorePage(), // More Page
   ];
 
@@ -39,10 +39,7 @@ class _BottomNavPageState extends State<BottomNavPage> {
         currentIndex: _currentIndex, // Track the currently selected index
         onTap: _onItemTapped, // Handle taps on tabs
         items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(
             icon: Icon(Icons.category),
             label: 'Category',
@@ -51,14 +48,8 @@ class _BottomNavPageState extends State<BottomNavPage> {
             icon: Icon(Icons.shopping_bag),
             label: 'Orders',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.menu),
-            label: 'More',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          BottomNavigationBarItem(icon: Icon(Icons.menu), label: 'More'),
         ],
       ),
     );

@@ -1,6 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:jewellery/Bloc/profile_bloc.dart';
+import 'package:jewellery/Event/profile_event.dart';
+import 'package:jewellery/State/profile_state.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
+  final String userId;
+
+  const ProfilePage({required this.userId});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  @override
+  void initState() {
+    super.initState();
+
+    // 👇 Trigger API call
+    context.read<ProfileBloc>().add(FetchProfile(widget.userId));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -10,10 +31,7 @@ class ProfilePage extends StatelessWidget {
         centerTitle: true,
         title: Text(
           'My Profile',
-          style: TextStyle(
-            color: Colors.brown,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.brown, fontWeight: FontWeight.bold),
         ),
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.brown),
@@ -38,7 +56,9 @@ class ProfilePage extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 50,
-                    backgroundImage: AssetImage('assets/profile_picture.jpg'), // Default profile image
+                    backgroundImage: AssetImage(
+                      'assets/profile_picture.jpg',
+                    ), // Default profile image
                     backgroundColor: Colors.brown.shade100,
                   ),
                   SizedBox(height: 16),
@@ -53,14 +73,87 @@ class ProfilePage extends StatelessWidget {
                   SizedBox(height: 8),
                   Text(
                     'kavin.kumar@example.com', // Replace with dynamic user email
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
                   ),
                 ],
               ),
             ),
+
+            //Profile API Integrated Sections
+
+            // BlocBuilder<ProfileBloc, ProfileState>(
+            //   builder: (context, state) {
+            //     if (state is ProfileLoading) {
+            //       return const Center(child: CircularProgressIndicator());
+            //     } else if (state is ProfileLoaded) {
+            //       final profile = state.profile;
+            //       return Padding(
+            //         padding: const EdgeInsets.all(16.0),
+            //         child: Container(
+            //           padding: const EdgeInsets.all(16),
+            //           decoration: BoxDecoration(
+            //             color: Colors.brown.shade50,
+            //             borderRadius: BorderRadius.circular(12),
+            //           ),
+            //           child: Column(
+            //             children: [
+            //               const CircleAvatar(
+            //                 radius: 50,
+            //                 backgroundImage: AssetImage(
+            //                   'assets/profile_picture.jpg',
+            //                 ),
+            //                 backgroundColor: Colors.brown,
+            //               ),
+            //               const SizedBox(height: 16),
+            //               Text(
+            //                 "${profile.firstname}${profile.lastname.isNotEmpty ? " ${profile.lastname}" : ""}",
+            //                 style: const TextStyle(
+            //                   fontSize: 22,
+            //                   fontWeight: FontWeight.bold,
+            //                   color: Colors.brown,
+            //                 ),
+            //               ),
+            //               const SizedBox(height: 8),
+            //               if (profile.email.isNotEmpty)
+            //                 Text(
+            //                   profile.email,
+            //                   style: TextStyle(
+            //                     fontSize: 16,
+            //                     color: Colors.grey.shade600,
+            //                   ),
+            //                 ),
+            //               if (profile.gender.isNotEmpty)
+            //                 Padding(
+            //                   padding: const EdgeInsets.only(top: 8),
+            //                   child: Row(
+            //                     children: [
+            //                       const Icon(Icons.person, size: 18),
+            //                       const SizedBox(width: 8),
+            //                       Text(profile.gender),
+            //                     ],
+            //                   ),
+            //                 ),
+            //               if (profile.phone.isNotEmpty)
+            //                 Padding(
+            //                   padding: const EdgeInsets.only(top: 8),
+            //                   child: Row(
+            //                     children: [
+            //                       const Icon(Icons.phone, size: 18),
+            //                       const SizedBox(width: 8),
+            //                       Text(profile.phone),
+            //                     ],
+            //                   ),
+            //                 ),
+            //             ],
+            //           ),
+            //         ),
+            //       );
+            //     } else if (state is ProfileError) {
+            //       return Center(child: Text(state.message));
+            //     }
+            //     return const SizedBox();
+            //   },
+            // ),
             SizedBox(height: 24),
 
             // Profile Options Section
@@ -131,23 +224,24 @@ class ProfilePage extends StatelessWidget {
                   // Handle Logout
                   showDialog(
                     context: context,
-                    builder: (context) => AlertDialog(
-                      title: Text('Logout'),
-                      content: Text('Are you sure you want to log out?'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text('Cancel'),
+                    builder:
+                        (context) => AlertDialog(
+                          title: Text('Logout'),
+                          content: Text('Are you sure you want to log out?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                // Perform logout action and navigate to login screen
+                                Navigator.pop(context); // Close dialog
+                              },
+                              child: Text('Logout'),
+                            ),
+                          ],
                         ),
-                        TextButton(
-                          onPressed: () {
-                            // Perform logout action and navigate to login screen
-                            Navigator.pop(context); // Close dialog
-                          },
-                          child: Text('Logout'),
-                        ),
-                      ],
-                    ),
                   );
                 },
                 child: Text(
@@ -183,9 +277,7 @@ class ProfileOptionCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Card(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         elevation: 2,
         margin: EdgeInsets.symmetric(vertical: 8),
         child: ListTile(
