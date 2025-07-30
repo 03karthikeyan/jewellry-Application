@@ -27,10 +27,7 @@ class RingsPage extends StatelessWidget {
         ),
         title: Text(
           'Rings',
-          style: TextStyle(
-            color: Colors.brown,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.brown, fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
@@ -119,15 +116,16 @@ class RingsPage extends StatelessWidget {
                 final product = products[index];
                 return GestureDetector(
                   onTap: () {
-                    // Navigate to DetailsPage with product details
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => DetailsPage(
-                          name: product['name']!,
-                          price: product['price']!,
-                          imagePath: product['image']!,
-                        ),
+                        builder:
+                            (context) => DetailsPage(
+                              // name: '',
+                              // price: '₹123000', // fallback
+                              imagePath: '',
+                              productId: 'product.id', // this is key
+                            ),
                       ),
                     );
                   },
@@ -159,7 +157,10 @@ class RingsPage extends StatelessWidget {
                             Positioned(
                               top: 6,
                               right: 6,
-                              child: Icon(Icons.favorite_border, color: Colors.brown),
+                              child: Icon(
+                                Icons.favorite_border,
+                                color: Colors.brown,
+                              ),
                             ),
                           ],
                         ),
@@ -169,9 +170,7 @@ class RingsPage extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 8.0),
                           child: Text(
                             product['name']!,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w500,
-                            ),
+                            style: TextStyle(fontWeight: FontWeight.w500),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),

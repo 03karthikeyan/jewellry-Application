@@ -26,6 +26,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
             final profile = Profile.fromJson(data);
             emit(ProfileLoaded(profile));
           } else {
+            print('Invalid data structure received: $data');
             emit(
               ProfileError(
                 "API Error: ${data['message'] ?? 'Failed to load profile'}",

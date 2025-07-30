@@ -3,10 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:jewellery/Bloc/banner_Bloc.dart';
 import 'package:jewellery/Bloc/category_Bloc.dart';
 import 'package:jewellery/Bloc/product_Bloc.dart';
+import 'package:jewellery/Bloc/product_details_bloc.dart';
 import 'package:jewellery/Bloc/profile_bloc.dart';
+
 import 'package:jewellery/Event/banner_Event.dart';
 import 'package:jewellery/Event/category_Event.dart';
 import 'package:jewellery/Event/product_Event.dart';
+import 'package:jewellery/Event/product_details_event.dart';
 import 'package:jewellery/Event/profile_event.dart';
 import 'package:jewellery/Screens/splash_screen.dart';
 
@@ -18,6 +21,9 @@ void main() {
         BlocProvider(create: (_) => CategoryBloc()..add(FetchCategoryEvent())),
         BlocProvider(create: (_) => ProductBloc()..add(FetchProductEvent(''))),
         BlocProvider(create: (_) => ProfileBloc()..add(FetchProfile(''))),
+        BlocProvider(
+          create: (_) => ProductDetailsBloc()..add(FetchProductDetails('')),
+        ),
       ],
       child: MyApp(),
     ),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:jewellery/Screens/login_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MorePage extends StatelessWidget {
   @override
@@ -10,10 +12,7 @@ class MorePage extends StatelessWidget {
         centerTitle: true,
         title: Text(
           'More',
-          style: TextStyle(
-            color: Colors.brown,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.brown, fontWeight: FontWeight.bold),
         ),
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.brown),
@@ -101,7 +100,7 @@ class MorePage extends StatelessWidget {
             // Logout Button
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red, // Button color
+                backgroundColor: Colors.red,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -109,26 +108,41 @@ class MorePage extends StatelessWidget {
                 minimumSize: Size(double.infinity, 48),
               ),
               onPressed: () {
-                // Handle Logout
+                // Show confirmation dialog
                 showDialog(
                   context: context,
-                  builder: (context) => AlertDialog(
-                    title: Text('Logout'),
-                    content: Text('Are you sure you want to log out?'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: Text('Cancel'),
+                  builder:
+                      (context) => AlertDialog(
+                        title: Text('Logout'),
+                        content: Text('Are you sure you want to log out?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              // Close dialog first
+                              Navigator.pop(context);
+
+                              // Clear SharedPreferences
+                              final prefs =
+                                  await SharedPreferences.getInstance();
+                              await prefs.remove('user_id');
+
+                              // Navigate to login screen and remove all previous routes
+                              Navigator.pushAndRemoveUntil(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => LoginScreen(),
+                                ),
+                                (route) => false,
+                              );
+                            },
+                            child: Text('Logout'),
+                          ),
+                        ],
                       ),
-                      TextButton(
-                        onPressed: () {
-                          // Perform logout action and navigate to login screen
-                          Navigator.pop(context); // Close dialog
-                        },
-                        child: Text('Logout'),
-                      ),
-                    ],
-                  ),
                 );
               },
               child: Text(
@@ -163,20 +177,14 @@ class MoreOptionCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Card(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         elevation: 2,
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                icon,
-                size: 40,
-                color: Colors.brown,
-              ),
+              Icon(icon, size: 40, color: Colors.brown),
               SizedBox(height: 8),
               Text(
                 title,

@@ -18,7 +18,7 @@ class _BottomNavPageState extends State<BottomNavPage> {
     HomePage(), // Home Page
     CategoryPage(), // Category Page
     OrdersPage(), // Orders Page
-    ProfilePage(userId: ''), // Profile Page
+    ProfilePage(), // Profile Page
     MorePage(), // More Page
   ];
 
