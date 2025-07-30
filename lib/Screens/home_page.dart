@@ -372,9 +372,10 @@ class _HomePageState extends State<HomePage> {
                               MaterialPageRoute(
                                 builder:
                                     (context) => DetailsPage(
-                                      name: 'Flat 20% Off',
-                                      price: 'On all diamond jewellery',
-                                      imagePath: 'assets/diamond1.png',
+                                      // name: '',
+                                      // price: '₹123000', // fallback
+                                      imagePath: '',
+                                      productId: 'product.id', // this is key
                                     ),
                               ),
                             );
@@ -395,9 +396,10 @@ class _HomePageState extends State<HomePage> {
                               MaterialPageRoute(
                                 builder:
                                     (context) => DetailsPage(
-                                      name: 'Buy 1 Get 1',
-                                      price: 'On selected gold rings',
-                                      imagePath: 'assets/gold1.png',
+                                      // name: '',
+                                      // price: '₹123000', // fallback
+                                      imagePath: '',
+                                      productId: 'product.id', // this is key
                                     ),
                               ),
                             );
@@ -674,13 +676,16 @@ class ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // Navigate to DetailsPage
         Navigator.push(
           context,
           MaterialPageRoute(
             builder:
-                (context) =>
-                    DetailsPage(name: name, price: price, imagePath: imagePath),
+                (context) => DetailsPage(
+                  // name: '',
+                  // price: '₹123000', // fallback
+                  imagePath: '',
+                  productId: 'product.id', // this is key
+                ),
           ),
         );
       },

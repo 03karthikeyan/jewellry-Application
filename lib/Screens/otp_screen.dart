@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'bottom_nav_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class OtpScreen extends StatefulWidget {
   final String mobile;
@@ -18,6 +21,18 @@ class _OtpScreenState extends State<OtpScreen> {
   );
   bool _isVerifying = false;
 
+  // Call this after OTP verified successfully
+  Future<void> _onOtpVerifiedSuccessfully(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_id', userId);
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => BottomNavPage()),
+      (route) => false,
+    );
+  }
+
   Future<void> _verifyOtp() async {
     final otp = _otpControllers.map((c) => c.text).join();
 
@@ -31,7 +46,7 @@ class _OtpScreenState extends State<OtpScreen> {
     setState(() => _isVerifying = true);
 
     final url = Uri.parse(
-      'http://pheonixconstructions.com/mobile/login.php?mobile=${widget.mobile}&otp=$otp',
+      'https://pheonixconstructions.com/mobile/otp.php?mobile=${widget.mobile}&otp=$otp',
     );
 
     try {
@@ -39,15 +54,26 @@ class _OtpScreenState extends State<OtpScreen> {
       setState(() => _isVerifying = false);
 
       if (response.statusCode == 200) {
-        print("OTP Verified Response: ${response.body}");
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => BottomNavPage()),
-        );
+        final data = jsonDecode(response.body);
+        print("OTP Verified Response: $data");
+
+        if (data['success'] == 1 &&
+            data['message'].toString().toLowerCase().contains('success')) {
+          if (data.containsKey('id')) {
+            final userId = data['id'].toString();
+            await _onOtpVerifiedSuccessfully(userId);
+          } else {
+            print('User ID missing in response!');
+          }
+        } else {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("Invalid OTP")));
+        }
       } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("OTP verification failed")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Server error. Please try again.")),
+        );
       }
     } catch (e) {
       setState(() => _isVerifying = false);

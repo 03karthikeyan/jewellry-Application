@@ -1,11 +1,13 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:http/http.dart' as http;
 import 'package:jewellery/Bloc/product_Bloc.dart';
 import 'package:jewellery/Event/product_Event.dart';
 import 'package:jewellery/Screens/details_page.dart';
 import 'package:jewellery/Screens/shimmer_Loader.dart';
 import 'package:jewellery/State/product_State.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProductListPage extends StatefulWidget {
   final String categoryId;
@@ -18,12 +20,75 @@ class ProductListPage extends StatefulWidget {
 }
 
 class _ProductListPageState extends State<ProductListPage> {
+  final Set<String> _wishlistedProductIds = {}; // Track wishlist status
+  // final String userId = "1"; // Replace with logged-in user ID if available
+  String? userId;
+  bool _isUserIdLoaded = false;
+
   @override
   void initState() {
     super.initState();
+    _loadUserId(); // Load user ID on widget init
+  }
 
-    // 👇 Trigger API call
-    context.read<ProductBloc>().add(FetchProductEvent(widget.categoryId));
+  Future<void> _loadUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      userId = prefs.getString('user_id') ?? '1';
+      _isUserIdLoaded = true;
+    });
+  }
+
+  Future<void> toggleWishlist(String productId) async {
+    if (userId == null || productId.isEmpty) {
+      print('User ID or product ID missing.');
+      return;
+    }
+
+    final isWishlisted = _wishlistedProductIds.contains(productId);
+
+    final uri = Uri.parse(
+      isWishlisted
+          ? 'https://pheonixconstructions.com/mobile/wishlistRemove.php?user_id=$userId&product_id=$productId'
+          : 'https://pheonixconstructions.com/mobile/wishlistAdd.php?user_id=$userId&product_id=$productId',
+    );
+
+    try {
+      final response = await http.get(uri);
+      final data = json.decode(response.body);
+
+      if (data['result'] == 'success') {
+        setState(() {
+          if (isWishlisted) {
+            _wishlistedProductIds.remove(productId);
+          } else {
+            _wishlistedProductIds.add(productId);
+          }
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isWishlisted ? 'Removed from wishlist' : 'Added to wishlist',
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: isWishlisted ? Colors.red : Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed: ${data['message'] ?? 'Try again'}'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Wishlist error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Network error. Please try again')),
+      );
+    }
   }
 
   @override
@@ -42,20 +107,24 @@ class _ProductListPageState extends State<ProductListPage> {
               if (products.isEmpty) {
                 return Center(child: Text("No products available"));
               }
+
               return Container(
-                color: Colors.grey[100], // Light background
+                color: Colors.grey[100],
                 child: GridView.builder(
                   padding: const EdgeInsets.all(16),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    childAspectRatio: 0.7, 
+                    childAspectRatio: 0.7,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
                   ),
-
                   itemCount: products.length,
                   itemBuilder: (context, index) {
                     final product = products[index];
+                    final isWishlisted = _wishlistedProductIds.contains(
+                      product.id,
+                    );
+
                     return GestureDetector(
                       onTap: () {
                         Navigator.push(
@@ -63,9 +132,8 @@ class _ProductListPageState extends State<ProductListPage> {
                           MaterialPageRoute(
                             builder:
                                 (_) => DetailsPage(
-                                  name: product.name,
-                                  price: '₹123000',
                                   imagePath: product.image,
+                                  productId: product.id,
                                 ),
                           ),
                         );
@@ -121,23 +189,44 @@ class _ProductListPageState extends State<ProductListPage> {
                                 Positioned(
                                   top: 8,
                                   right: 8,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black12,
-                                          blurRadius: 4,
-                                        ),
-                                      ],
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(4.0),
+                                  child: InkWell(
+                                    onTap: () {
+                                      // if (_isUserIdLoaded) {
+                                      //   toggleWishlist(product.id);
+                                      // } else {
+                                      //   ScaffoldMessenger.of(
+                                      //     context,
+                                      //   ).showSnackBar(
+                                      //     SnackBar(
+                                      //       content: Text(
+                                      //         "User not loaded yet, please wait.",
+                                      //       ),
+                                      //     ),
+                                      //   );
+                                      // }
+                                    },
+
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black12,
+                                            blurRadius: 4,
+                                          ),
+                                        ],
+                                      ),
+                                      padding: const EdgeInsets.all(6),
                                       child: Icon(
-                                        Icons.favorite_border,
+                                        isWishlisted
+                                            ? Icons.favorite
+                                            : Icons.favorite_border,
                                         size: 18,
-                                        color: Colors.brown,
+                                        color:
+                                            isWishlisted
+                                                ? Colors.red
+                                                : Colors.brown,
                                       ),
                                     ),
                                   ),
@@ -198,7 +287,7 @@ class _ProductListPageState extends State<ProductListPage> {
               return Center(child: Text("Error: ${state.message}"));
             }
 
-            return Container(); // Initial or unknown state
+            return Container(); // Default fallback
           },
         ),
       ),

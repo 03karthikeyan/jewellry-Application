@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:jewellery/Screens/bottom_nav_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -11,12 +13,30 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Wait for 4 seconds and navigate to the login screen
-    Timer(Duration(seconds: 3), () {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => LoginScreen()),
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    await Future.delayed(Duration(seconds: 3)); // Splash duration
+
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+
+    if (userId != null && userId.isNotEmpty) {
+      // Already logged in
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => BottomNavPage(),
+        ), // Update this if needed
       );
-    });
+    } else {
+      // Not logged in
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => LoginScreen()),
+      );
+    }
   }
 
   @override
@@ -35,13 +55,13 @@ class _SplashScreenState extends State<SplashScreen> {
           child: Text(
             'Sri Chandra Jewel Crafts',
             style: TextStyle(
-              fontFamily: 'Pacifico', // Use a custom font like Pacifico
-              fontSize: 32, // Increase font size for better visibility
-              fontWeight: FontWeight.w900, // Make it extra bold
-              color: Colors.brown.shade700, // Use a rich brown color
+              fontFamily: 'Pacifico',
+              fontSize: 32,
+              fontWeight: FontWeight.w900,
+              color: Colors.brown.shade700,
               shadows: [
                 Shadow(
-                  offset: Offset(2, 2), // Add a shadow for depth
+                  offset: Offset(2, 2),
                   blurRadius: 4,
                   color: Colors.black26,
                 ),

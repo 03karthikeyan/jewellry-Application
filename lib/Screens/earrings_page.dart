@@ -116,15 +116,16 @@ class EarringsPage extends StatelessWidget {
                 final product = products[index];
                 return GestureDetector(
                   onTap: () {
-                    // Navigate to DetailsPage with product details
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder:
                             (context) => DetailsPage(
-                              name: product['name']!,
-                              price: product['price']!,
-                              imagePath: product['image']!,
+                              // name: '',
+                              // price: '₹123000', // fallback
+                              imagePath: '',
+                              productId: 'product.id',
+                              // this is key
                             ),
                       ),
                     );
