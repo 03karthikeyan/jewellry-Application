@@ -7,17 +7,23 @@ import 'package:jewellery/Bloc/category_Bloc.dart';
 import 'package:jewellery/Event/banner_Event.dart';
 import 'package:jewellery/Event/category_Event.dart';
 import 'package:jewellery/Model/banner_Model.dart';
+import 'package:jewellery/Model/recently_AddedProducts_Model.dart';
+import 'package:jewellery/Screens/category_page.dart';
 import 'package:jewellery/Screens/details_page.dart';
 import 'package:jewellery/Screens/diamond_jewellery_page.dart';
 import 'package:jewellery/Screens/earrings_page.dart';
 import 'package:jewellery/Screens/gold_jewellery_page.dart';
+import 'package:jewellery/Screens/login_screen.dart';
 import 'package:jewellery/Screens/necklaces_page.dart';
+import 'package:jewellery/Screens/orders_page.dart';
 import 'package:jewellery/Screens/productList_Page.dart';
+import 'package:jewellery/Screens/profile_page.dart';
 import 'package:jewellery/Screens/rings_page.dart';
 import 'package:jewellery/Screens/shimmer_Loader.dart';
 import 'package:jewellery/Screens/silver_jewellery_page.dart';
 import 'package:jewellery/State/banner_State.dart';
 import 'package:jewellery/State/category_State.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'package:video_player/video_player.dart';
 import 'package:marquee/marquee.dart';
@@ -47,23 +53,15 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _startAutoSlide();
-    _videoController = VideoPlayerController.asset('assets/jewel-video.mp4')
-      ..initialize().then((_) {
-        setState(() {});
-        _videoController.setLooping(true);
-        _videoController.setVolume(0); // Mute the video
-        _videoController.play();
-        // fetchBannerImages();
-        context.read<CategoryBloc>().add(FetchCategoryEvent());
-        context.read<BannerBloc>().add(FetchBannerEvent());
-      });
+
+    context.read<CategoryBloc>().add(FetchCategoryEvent());
+    context.read<BannerBloc>().add(FetchBannerEvent());
   }
 
   @override
   void dispose() {
     _autoSlideTimer?.cancel();
     _pageController.dispose();
-    _videoController.dispose();
     super.dispose();
   }
 
@@ -82,31 +80,24 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  //banner API integration
+  //Recently Added Products API integration
 
-  // Future<void> fetchBannerImages() async {
-  //   final response = await http.get(
-  //     Uri.parse('http://pheonixconstructions.com/mobile/bannerList.php'),
-  //   );
+  Future<List<RecentlyAddedProduct>> fetchRecentlyAddedProducts() async {
+    final response = await http.get(
+      Uri.parse(
+        'https://pheonixconstructions.com/mobile/recentlyAddedProduct.php',
+      ),
+    );
 
-  //   if (response.statusCode == 200) {
-  //     final jsonData = jsonDecode(response.body);
-  //     final List<dynamic> storeList = jsonData['storeList'];
-  //     print('Working banners');
-
-  //     setState(() {
-  //       _bannerImages =
-  //           storeList
-  //               .map(
-  //                 (item) => 'http://pheonixconstructions.com/' + item['image'],
-  //               )
-  //               .toList()
-  //               .cast<String>();
-  //     });
-  //   } else {
-  //     print('Failed to load banners');
-  //   }
-  // }
+    if (response.statusCode == 200) {
+      final jsonData = json.decode(response.body);
+      if (jsonData['result'] == 'Success') {
+        List list = jsonData['storeList'];
+        return list.map((item) => RecentlyAddedProduct.fromJson(item)).toList();
+      }
+    }
+    throw Exception('Failed to load products');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -311,11 +302,11 @@ class _HomePageState extends State<HomePage> {
 
                 // Continue with the rest of the existing sections...
                 SizedBox(height: 16),
-                // Featured Products Section
+                // Recently Added Products Section
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Text(
-                    'Featured Products',
+                    'Recently Added Products',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -323,202 +314,47 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: GridView.builder(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                      childAspectRatio: 0.8,
-                    ),
-                    itemCount: 8,
-                    itemBuilder: (context, index) {
-                      return ProductCard(
-                        name: 'Graceful Overlap Gold Bangles ${index + 1}',
-                        price: '₹169300',
-                        originalPrice: '₹169300',
-                        imagePath: 'assets/ring_${index + 1}.jpg',
+                FutureBuilder<List<RecentlyAddedProduct>>(
+                  future: fetchRecentlyAddedProducts(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Center(child: Text('Error loading products'));
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return Center(child: Text('No products found.'));
+                    } else {
+                      final products = snapshot.data!;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: GridView.builder(
+                          shrinkWrap: true,
+                          physics: NeverScrollableScrollPhysics(),
+                          itemCount: products.length,
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 10,
+                                mainAxisSpacing: 10,
+                                childAspectRatio: 0.8,
+                              ),
+
+                          itemBuilder: (context, index) {
+                            final product = products[index];
+                            return ProductCard(
+                              name: product.pname ?? 'No Name',
+                              // price: '₹${product. ?? ''}',
+                              // originalPrice: '₹${product.productMrp ?? ''}',
+                              imageUrl: product.pimage ?? '',
+                            );
+                          },
+                        ),
                       );
-                    },
-                  ),
-                ),
-                SizedBox(height: 16),
-
-                // Add this below the "Featured Products" section
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Exclusive Offers',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.brown,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) => DetailsPage(
-                                      // name: '',
-                                      // price: '₹123000', // fallback
-                                      imagePath: '',
-                                      productId: 'product.id', // this is key
-                                    ),
-                              ),
-                            );
-                          },
-                          child: OfferCard(
-                            title: 'Flat 20% Off',
-                            description: 'On all diamond jewellery',
-                            imagePath: 'assets/diamond1.png',
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) => DetailsPage(
-                                      // name: '',
-                                      // price: '₹123000', // fallback
-                                      imagePath: '',
-                                      productId: 'product.id', // this is key
-                                    ),
-                              ),
-                            );
-                          },
-                          child: OfferCard(
-                            title: 'Buy 1 Get 1',
-                            description: 'On selected gold rings',
-                            imagePath: 'assets/gold1.png',
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                    }
+                  },
                 ),
 
-                // Sparkle Every Day Section
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Sparkle Every Day',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.brown,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Image.asset(
-                    'assets/sparkle_banner.jpg',
-                    fit: BoxFit.cover,
-                  ),
-                ),
                 SizedBox(height: 16),
-                // Surprise for Her Section
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Surprise For Her',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.brown,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Image.asset(
-                    'assets/surprise_for_her.jpg',
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                SizedBox(height: 16),
-
-                // Unleash Your Ride Section
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Unleash Your Ride',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.brown,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: SizedBox(
-                    height: 220, // Increase this value as needed
-                    width: double.infinity,
-                    child:
-                        _videoController.value.isInitialized
-                            ? ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: VideoPlayer(_videoController),
-                            )
-                            : Container(
-                              color: Colors.black12,
-                              child: Center(child: CircularProgressIndicator()),
-                            ),
-                  ),
-                ),
-                SizedBox(height: 16),
-
-                // Shop by Gender Section
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Shop by Gender',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.brown,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      GenderCategory(
-                        title: 'Men',
-                        imagePath: 'assets/men.webp',
-                      ),
-                      GenderCategory(
-                        title: 'Women',
-                        imagePath: 'assets/women.jpg',
-                      ),
-                      GenderCategory(
-                        title: 'Children',
-                        imagePath: 'assets/children.jpg',
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),
@@ -597,23 +433,6 @@ class CategoryItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // if (title == 'Rings') {
-        //   Navigator.push(
-        //     context,
-        //     MaterialPageRoute(builder: (context) => RingsPage()),
-        //   );
-        // } else if (title == 'Earrings') {
-        //   Navigator.push(
-        //     context,
-        //     MaterialPageRoute(builder: (context) => EarringsPage()),
-        //   );
-        // } else if (title == 'Necklaces') {
-        //   Navigator.push(
-        //     context,
-        //     MaterialPageRoute(builder: (context) => NecklacesPage()),
-        //   );
-        // }
-
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -661,16 +480,10 @@ class GenderCategory extends StatelessWidget {
 
 class ProductCard extends StatelessWidget {
   final String name;
-  final String price;
-  final String originalPrice;
-  final String imagePath;
+  final String imageUrl;
 
-  ProductCard({
-    required this.name,
-    required this.price,
-    required this.originalPrice,
-    required this.imagePath,
-  });
+  const ProductCard({Key? key, required this.name, required this.imageUrl})
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -680,60 +493,82 @@ class ProductCard extends StatelessWidget {
           context,
           MaterialPageRoute(
             builder:
-                (context) => DetailsPage(
-                  // name: '',
-                  // price: '₹123000', // fallback
-                  imagePath: '',
-                  productId: 'product.id', // this is key
-                ),
+                (context) => DetailsPage(productId: '', imagePath: imageUrl),
           ),
         );
       },
-      child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        elevation: 2,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
-                child: Image.asset(
-                  imagePath,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                ),
-              ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 4,
+              offset: Offset(0, 2),
             ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Image with NEW label
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                  child: Image.network(
+                    imageUrl,
+                    height: 180,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder:
+                        (context, error, stackTrace) => Container(
+                          height: 180,
+                          width: double.infinity,
+                          color: Colors.grey[200],
+                          child: Icon(
+                            Icons.image,
+                            size: 80,
+                            color: Colors.grey,
+                          ),
+                        ),
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'NEW',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            // Product Name directly below image
             Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.brown,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    price,
-                    style: TextStyle(fontSize: 14, color: Colors.green),
-                  ),
-                  Text(
-                    originalPrice,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                      decoration: TextDecoration.lineThrough,
-                    ),
-                  ),
-                ],
+              padding: const EdgeInsets.all(8),
+              child: Text(
+                name,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -915,39 +750,50 @@ class AppDrawer extends StatelessWidget {
               leading: Icon(Icons.home, color: Colors.brown),
               title: Text('Home'),
               onTap: () {
-                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => HomePage()),
+                );
               },
             ),
             ListTile(
               leading: Icon(Icons.category, color: Colors.brown),
               title: Text('Categories'),
               onTap: () {
-                // Navigate to categories or scroll to categories section
-                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => CategoryPage()),
+                );
               },
             ),
             ListTile(
               leading: Icon(Icons.favorite, color: Colors.brown),
               title: Text('Wishlist'),
               onTap: () {
-                // Navigate to wishlist
-                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => OrdersPage()),
+                );
               },
             ),
             ListTile(
               leading: Icon(Icons.shopping_bag, color: Colors.brown),
               title: Text('My Orders'),
               onTap: () {
-                // Navigate to orders
-                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => OrdersPage()),
+                );
               },
             ),
             ListTile(
               leading: Icon(Icons.person, color: Colors.brown),
               title: Text('Profile'),
               onTap: () {
-                // Navigate to profile
-                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => ProfilePage()),
+                );
               },
             ),
             Divider(),
@@ -962,9 +808,21 @@ class AppDrawer extends StatelessWidget {
             ListTile(
               leading: Icon(Icons.logout, color: Colors.brown),
               title: Text('Logout'),
-              onTap: () {
-                // Handle logout
-                Navigator.pop(context);
+              onTap: () async {
+                Navigator.pop(context); // Close the drawer
+
+                await Future.delayed(
+                  Duration(milliseconds: 300),
+                ); // Wait for drawer to fully close
+
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.remove('user_id');
+
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => LoginScreen()),
+                  (route) => false,
+                );
               },
             ),
           ],

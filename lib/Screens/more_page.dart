@@ -14,12 +14,12 @@ class MorePage extends StatelessWidget {
           'More',
           style: TextStyle(color: Colors.brown, fontWeight: FontWeight.bold),
         ),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.brown),
-          onPressed: () {
-            Navigator.pop(context); // Navigate back
-          },
-        ),
+        // leading: IconButton(
+        //   icon: Icon(Icons.arrow_back, color: Colors.brown),
+        //   onPressed: () {
+        //     Navigator.pop(context); // Navigate back
+        //   },
+        // ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -124,7 +124,7 @@ class MorePage extends StatelessWidget {
                             onPressed: () async {
                               // Close dialog first
                               Navigator.pop(context);
-
+                              await Future.delayed(Duration(milliseconds: 300));
                               // Clear SharedPreferences
                               final prefs =
                                   await SharedPreferences.getInstance();

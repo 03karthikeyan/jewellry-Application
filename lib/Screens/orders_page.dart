@@ -287,10 +287,10 @@ class _OrdersPageState extends State<OrdersPage>
           'My Account',
           style: TextStyle(color: Colors.brown, fontWeight: FontWeight.bold),
         ),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.brown),
-          onPressed: () => Navigator.pop(context),
-        ),
+        // leading: IconButton(
+        //   icon: Icon(Icons.arrow_back, color: Colors.brown),
+        //   onPressed: () => Navigator.pop(context),
+        // ),
         bottom: TabBar(
           controller: _tabController,
           labelColor: Colors.brown,

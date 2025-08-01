@@ -9,7 +9,8 @@ class ProductModel {
     return ProductModel(
       id: json['id'],
       name: json['pname'],
-      image: 'https://pheonixconstructions.com/assets/images/product_image/${json['pimage']}',
+      image:
+          'https://pheonixconstructions.com/assets/images/product_image/${json['pimage']}',
     );
   }
 }

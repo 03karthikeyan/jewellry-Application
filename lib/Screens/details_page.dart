@@ -922,7 +922,7 @@ class _DetailsPageState extends State<DetailsPage> {
         } else {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(SnackBar(content: Text('Failed to update wishlist')));
+          ).showSnackBar(SnackBar(content: Text('Already in wishlist')));
         }
       }
     } catch (e) {
