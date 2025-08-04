@@ -527,6 +527,7 @@ class _AddressFormDialogState extends State<AddressFormDialog> {
               TextFormField(
                 controller: _contactnumberController,
                 decoration: InputDecoration(labelText: 'Contact Number'),
+                keyboardType: TextInputType.number,
                 validator: (value) => value!.isEmpty ? 'Required' : null,
               ),
               TextFormField(

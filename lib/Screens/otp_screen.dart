@@ -21,6 +21,8 @@ class _OtpScreenState extends State<OtpScreen> {
   );
   bool _isVerifying = false;
 
+  final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
+
   // Call this after OTP verified successfully
   Future<void> _onOtpVerifiedSuccessfully(String userId) async {
     final prefs = await SharedPreferences.getInstance();
@@ -84,6 +86,17 @@ class _OtpScreenState extends State<OtpScreen> {
   }
 
   @override
+  void dispose() {
+    for (var controller in _otpControllers) {
+      controller.dispose();
+    }
+    for (var node in _focusNodes) {
+      node.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
@@ -105,7 +118,7 @@ class _OtpScreenState extends State<OtpScreen> {
               Text(
                 'Sri Chandra Jewel Crafts',
                 style: TextStyle(
-                  fontSize: 28,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Colors.brown,
                   fontFamily: 'Serif',
@@ -141,9 +154,26 @@ class _OtpScreenState extends State<OtpScreen> {
                     ),
                     child: TextField(
                       controller: _otpControllers[index],
+                      focusNode: _focusNodes[index],
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
                       maxLength: 1,
+                      onChanged: (value) {
+                        if (value.length == 1 && index < 3) {
+                          FocusScope.of(
+                            context,
+                          ).requestFocus(_focusNodes[index + 1]);
+                        }
+                        if (_otpControllers.every((c) => c.text.isNotEmpty)) {
+                          final enteredOtp =
+                              _otpControllers.map((c) => c.text).join();
+                          if (enteredOtp == "1111") {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("Entered OTP is 1111")),
+                            );
+                          }
+                        }
+                      },
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,

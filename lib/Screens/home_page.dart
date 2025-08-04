@@ -318,7 +318,7 @@ class _HomePageState extends State<HomePage> {
                   future: fetchRecentlyAddedProducts(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return Center(child: CircularProgressIndicator());
+                      return Center(child: ShimmerLoadingFilter());
                     } else if (snapshot.hasError) {
                       return Center(child: Text('Error loading products'));
                     } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -336,7 +336,7 @@ class _HomePageState extends State<HomePage> {
                                 crossAxisCount: 2,
                                 crossAxisSpacing: 10,
                                 mainAxisSpacing: 10,
-                                childAspectRatio: 0.8,
+                                childAspectRatio: 0.72,
                               ),
 
                           itemBuilder: (context, index) {
@@ -805,26 +805,26 @@ class AppDrawer extends StatelessWidget {
                 Navigator.pop(context);
               },
             ),
-            ListTile(
-              leading: Icon(Icons.logout, color: Colors.brown),
-              title: Text('Logout'),
-              onTap: () async {
-                Navigator.pop(context); // Close the drawer
+            // ListTile(
+            //   leading: Icon(Icons.logout, color: Colors.brown),
+            //   title: Text('Logout'),
+            //   onTap: () async {
+            //     // First, close the drawer
+            //     Navigator.of(context).pop();
 
-                await Future.delayed(
-                  Duration(milliseconds: 300),
-                ); // Wait for drawer to fully close
+            //     // Clear shared preferences
+            //     final prefs = await SharedPreferences.getInstance();
+            //     await prefs.remove('user_id');
 
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.remove('user_id');
-
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => LoginScreen()),
-                  (route) => false,
-                );
-              },
-            ),
+            //     // Navigate to login screen safely after drawer and preferences are cleared
+            //     Future.delayed(Duration(milliseconds: 300), () {
+            //       Navigator.of(context).pushAndRemoveUntil(
+            //         MaterialPageRoute(builder: (context) => LoginScreen()),
+            //         (route) => false,
+            //       );
+            //     });
+            //   },
+            // ),
           ],
         ),
       ),

@@ -114,7 +114,7 @@ class _ProductListPageState extends State<ProductListPage> {
                   padding: const EdgeInsets.all(16),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    childAspectRatio: 0.7,
+                    childAspectRatio: 0.8,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
                   ),
@@ -206,29 +206,29 @@ class _ProductListPageState extends State<ProductListPage> {
                                       // }
                                     },
 
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        shape: BoxShape.circle,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black12,
-                                            blurRadius: 4,
-                                          ),
-                                        ],
-                                      ),
-                                      padding: const EdgeInsets.all(6),
-                                      child: Icon(
-                                        isWishlisted
-                                            ? Icons.favorite
-                                            : Icons.favorite_border,
-                                        size: 18,
-                                        color:
-                                            isWishlisted
-                                                ? Colors.red
-                                                : Colors.brown,
-                                      ),
-                                    ),
+                                    // child: Container(
+                                    //   decoration: BoxDecoration(
+                                    //     color: Colors.white,
+                                    //     shape: BoxShape.circle,
+                                    //     boxShadow: [
+                                    //       BoxShadow(
+                                    //         color: Colors.black12,
+                                    //         blurRadius: 4,
+                                    //       ),
+                                    //     ],
+                                    //   ),
+                                    //   padding: const EdgeInsets.all(6),
+                                    //   child: Icon(
+                                    //     isWishlisted
+                                    //         ? Icons.favorite
+                                    //         : Icons.favorite_border,
+                                    //     size: 18,
+                                    //     color:
+                                    //         isWishlisted
+                                    //             ? Colors.red
+                                    //             : Colors.brown,
+                                    //   ),
+                                    // ),
                                   ),
                                 ),
                               ],
@@ -249,33 +249,33 @@ class _ProductListPageState extends State<ProductListPage> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                              ),
-                              child: Row(
-                                children: [
-                                  Text(
-                                    '₹123000',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.green[800],
-                                    ),
-                                  ),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    '₹145000',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                      decoration: TextDecoration.lineThrough,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            SizedBox(height: 8),
+                            // Padding(
+                            //   padding: const EdgeInsets.symmetric(
+                            //     horizontal: 8,
+                            //   ),
+                            //   child: Row(
+                            //     children: [
+                            //       Text(
+                            //         '₹123000',
+                            //         style: TextStyle(
+                            //           fontSize: 14,
+                            //           fontWeight: FontWeight.bold,
+                            //           color: Colors.green[800],
+                            //         ),
+                            //       ),
+                            //       SizedBox(width: 6),
+                            //       Text(
+                            //         '₹145000',
+                            //         style: TextStyle(
+                            //           fontSize: 12,
+                            //           color: Colors.grey,
+                            //           decoration: TextDecoration.lineThrough,
+                            //         ),
+                            //       ),
+                            //     ],
+                            //   ),
+                            // ),
+                            // SizedBox(height: 8),
                           ],
                         ),
                       ),

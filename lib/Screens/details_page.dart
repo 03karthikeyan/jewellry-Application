@@ -1,704 +1,3 @@
-// //Details screen Kavin
-
-// // File: details_page.dart
-// import 'dart:convert';
-// import 'package:flutter/material.dart';
-// import 'package:http/http.dart' as http;
-// import 'package:jewellery/Model/address_Model.dart';
-// import 'package:jewellery/Screens/orderSummary_Page.dart';
-// import 'package:shared_preferences/shared_preferences.dart';
-
-// class DetailsPage extends StatefulWidget {
-//   String productId; // Make this non-final so we can change it for fallback
-//   final String imagePath;
-
-//   DetailsPage({required this.productId, required this.imagePath});
-
-//   @override
-//   _DetailsPageState createState() => _DetailsPageState();
-// }
-
-// class _DetailsPageState extends State<DetailsPage> {
-//   Map<String, dynamic>? productDetails;
-//   bool isLoading = true;
-//   List<Map<String, dynamic>> variants = [];
-//   bool isInWishlist = false;
-//   String? userId;
-//   bool isWishlistLoading = false;
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     loadUserIdAndThenInit();
-//     fetchProductDetails();
-//   }
-
-//   Future<void> loadUserIdAndThenInit() async {
-//     final prefs = await SharedPreferences.getInstance();
-//     final savedUserId = prefs.getString('user_id');
-//     print('Loaded userId from SharedPreferences: $savedUserId');
-
-//     setState(() {
-//       userId = savedUserId; // Store in your class-level userId
-//     });
-
-//     if (userId != null && userId!.isNotEmpty) {
-//       checkWishlistStatus(); // now safe to call with valid userId
-//       fetchProductDetails(); // if needed
-//     } else {
-//       print(
-//         "Error: userId is null even after splash. Check Splash/Login storage.",
-//       );
-//     }
-//   }
-
-//   Future<void> checkWishlistStatus() async {
-//     if (userId == null) {
-//       print('Cannot check wishlist: userId is null');
-//       return;
-//     }
-
-//     setState(() {
-//       isWishlistLoading = true;
-//     });
-
-//     try {
-//       // Make sure product ID is clean
-//       String cleanProductId = widget.productId.replaceAll('"', '');
-
-//       // Try the wishlist check API first
-//       final url =
-//           'https://pheonixconstructions.com/mobile/checkWishlist.php?user_id=$userId&product_id=$cleanProductId';
-//       print('Checking wishlist status: $url');
-
-//       final response = await http.get(Uri.parse(url));
-//       print('Check wishlist status code: ${response.statusCode}');
-//       print('Check wishlist response: ${response.body}');
-
-//       if (response.statusCode == 200) {
-//         try {
-//           final data = json.decode(response.body);
-
-//           // More flexible check for success
-//           bool isInList = false;
-//           if (data.containsKey('result') && data['result'] == 'Success') {
-//             isInList = true;
-//           } else if (data.containsKey('exists') && data['exists'] == true) {
-//             isInList = true;
-//           } else if (data.containsKey('status') && data['status'] == 'found') {
-//             isInList = true;
-//           }
-
-//           setState(() {
-//             isInWishlist = isInList;
-//           });
-//           print('Product is in wishlist: $isInWishlist');
-//         } catch (e) {
-//           print('Error parsing wishlist check response: $e');
-//           // Fallback to wishlist list API if check API fails
-//           await checkWishlistUsingListAPI();
-//         }
-//       } else {
-//         // Fallback to wishlist list API if check API returns error
-//         await checkWishlistUsingListAPI();
-//       }
-//     } catch (e) {
-//       print('Error checking wishlist status: $e');
-//       // Try fallback method
-//       await checkWishlistUsingListAPI();
-//     } finally {
-//       setState(() {
-//         isWishlistLoading = false;
-//       });
-//     }
-//   }
-
-//   Future<void> checkWishlistUsingListAPI() async {
-//     try {
-//       print('Trying fallback wishlist check using list API');
-//       final url =
-//           'https://pheonixconstructions.com/mobile/wishlistList.php?user_id=$userId';
-//       final response = await http.get(Uri.parse(url));
-
-//       if (response.statusCode == 200) {
-//         final data = json.decode(response.body);
-//         print('Wishlist list response: ${response.body}');
-
-//         if (data.containsKey('wishlist') && data['wishlist'] is List) {
-//           List<dynamic> wishlist = data['wishlist'];
-//           String cleanProductId = widget.productId.replaceAll('"', '');
-
-//           // Check if product exists in wishlist
-//           bool found = wishlist.any(
-//             (item) =>
-//                 (item is Map &&
-//                     item.containsKey('product_id') &&
-//                     item['product_id'].toString() == cleanProductId),
-//           );
-
-//           setState(() {
-//             isInWishlist = found;
-//           });
-//           print('Product found in wishlist list: $found');
-//         }
-//       }
-//     } catch (e) {
-//       print('Error in fallback wishlist check: $e');
-//     }
-//   }
-
-//   Future<void> toggleWishlist() async {
-//     if (userId == null || userId!.isEmpty) {
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         SnackBar(content: Text("User not logged in. Please login first.")),
-//       );
-//       print("Cannot toggle wishlist. userId is null.");
-//       return;
-//     }
-
-//     final productId = widget.productId;
-
-//     setState(() => isWishlistLoading = true);
-
-//     final url =
-//         isInWishlist
-//             ? 'https://pheonixconstructions.com/mobile/wishlistRemove.php?user_id=$userId&product_id=$productId'
-//             : 'https://pheonixconstructions.com/mobile/wishlistAdd.php?user_id=$userId&product_id=$productId';
-
-//     print('Calling wishlist API: $url');
-
-//     try {
-//       final response = await http.get(Uri.parse(url));
-//       final data = json.decode(response.body);
-
-//       if (data['result'] == 'success') {
-//         setState(() {
-//           isInWishlist = !isInWishlist;
-//         });
-//       } else {
-//         ScaffoldMessenger.of(
-//           context,
-//         ).showSnackBar(SnackBar(content: Text("Success: ${data['text']}")));
-//       }
-//     } catch (e) {
-//       print('Error calling wishlist API: $e');
-//     }
-
-//     setState(() => isWishlistLoading = false);
-//   }
-
-//   Future<void> fetchProductDetails() async {
-//     try {
-//       String cleanProductId = widget.productId.replaceAll('"', '');
-//       // Update the productId with clean version
-//       widget.productId = cleanProductId;
-
-//       final url =
-//           'https://pheonixconstructions.com/mobile/productDetails.php?product_id=$cleanProductId';
-//       print('Fetching product details from: $url');
-
-//       final response = await http.get(Uri.parse(url));
-//       print('Response status: ${response.statusCode}');
-
-//       if (response.statusCode == 200) {
-//         final data = json.decode(response.body);
-//         print('API response result: ${data['result']}');
-
-//         if (data['result'] == 'Success' && data['Product_Details'] != null) {
-//           setState(() {
-//             variants = List<Map<String, dynamic>>.from(data['Product_Details']);
-//             productDetails = variants.isNotEmpty ? variants[0] : null;
-//             isLoading = false;
-//           });
-//         } else {
-//           // No fallback, just show user-friendly message
-//           setState(() {
-//             productDetails = null;
-//             isLoading = false;
-//           });
-//         }
-//       } else {
-//         setState(() {
-//           isLoading = false;
-//         });
-//       }
-//     } catch (e) {
-//       print('Error fetching product details: $e');
-//       setState(() {
-//         isLoading = false;
-//       });
-//     }
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     if (isLoading) {
-//       return Scaffold(body: Center(child: CircularProgressIndicator()));
-//     }
-//     if (productDetails == null) {
-//       return Scaffold(
-//         appBar: AppBar(
-//           title: Text('Product Details'),
-//           backgroundColor: Colors.white,
-//           leading: IconButton(
-//             icon: Icon(Icons.arrow_back, color: Colors.brown),
-//             onPressed: () => Navigator.pop(context),
-//           ),
-//         ),
-//         body: Center(
-//           child: Column(
-//             mainAxisAlignment: MainAxisAlignment.center,
-//             children: [
-//               Icon(Icons.info_outline, size: 80, color: Colors.orange),
-//               SizedBox(height: 16),
-//               Text(
-//                 'Oops! No details found for this product.',
-//                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-//               ),
-//               SizedBox(height: 10),
-//               Text(
-//                 'Please try another product or go back.',
-//                 style: TextStyle(fontSize: 14, color: Colors.grey),
-//               ),
-//               SizedBox(height: 20),
-//               ElevatedButton(
-//                 style: ElevatedButton.styleFrom(backgroundColor: Colors.brown),
-//                 onPressed: () {
-//                   Navigator.pop(context);
-//                 },
-//                 child: Text('Go Back', style: TextStyle(color: Colors.white)),
-//               ),
-//             ],
-//           ),
-//         ),
-//       );
-//     }
-
-//     return Scaffold(
-//       backgroundColor: Colors.white,
-//       appBar: AppBar(
-//         backgroundColor: Colors.white,
-//         elevation: 0,
-//         leading: IconButton(
-//           icon: Icon(Icons.arrow_back, color: Colors.brown),
-//           onPressed: () => Navigator.pop(context),
-//         ),
-//         title: Text(
-//           productDetails!['pname'] ?? '',
-//           style: TextStyle(color: Colors.brown, fontWeight: FontWeight.bold),
-//         ),
-//         actions: [
-//           isWishlistLoading
-//               ? Padding(
-//                 padding: const EdgeInsets.only(right: 16.0),
-//                 child: SizedBox(
-//                   width: 20,
-//                   height: 20,
-//                   child: CircularProgressIndicator(
-//                     strokeWidth: 2,
-//                     color: Colors.brown,
-//                   ),
-//                 ),
-//               )
-//               : IconButton(
-//                 icon: Icon(
-//                   isInWishlist ? Icons.favorite : Icons.favorite_border,
-//                   color: isInWishlist ? Colors.red : Colors.brown,
-//                 ),
-//                 onPressed: toggleWishlist,
-//               ),
-//         ],
-//       ),
-//       body: SingleChildScrollView(
-//         child: Padding(
-//           padding: const EdgeInsets.all(16.0),
-//           child: Column(
-//             crossAxisAlignment: CrossAxisAlignment.start,
-//             children: [
-//               SizedBox(height: 32), // Add space above image
-//               Center(
-//                 child: Image.network(
-//                   widget.imagePath,
-//                   height: 250,
-//                   fit: BoxFit.contain,
-//                   errorBuilder:
-//                       (context, error, stackTrace) => Container(
-//                         height: 250,
-//                         width: double.infinity,
-//                         color: Colors.grey[200],
-//                         child: const Center(
-//                           child: Icon(
-//                             Icons.broken_image,
-//                             size: 60,
-//                             color: Colors.grey,
-//                           ),
-//                         ),
-//                       ),
-//                 ),
-//               ),
-//               SizedBox(height: 20),
-//               Container(
-//                 padding: EdgeInsets.all(12),
-//                 decoration: BoxDecoration(
-//                   color: Colors.white,
-//                   borderRadius: BorderRadius.circular(8),
-//                   boxShadow: [
-//                     BoxShadow(blurRadius: 5, color: Colors.brown.shade100),
-//                   ],
-//                 ),
-//                 child: Column(
-//                   crossAxisAlignment: CrossAxisAlignment.start,
-//                   children: [
-//                     Text(
-//                       productDetails!['pname'] ?? '',
-//                       style: TextStyle(
-//                         fontSize: 22,
-//                         fontWeight: FontWeight.bold,
-//                         color: Colors.brown,
-//                       ),
-//                     ),
-//                     SizedBox(height: 6),
-//                     Text(
-//                       'Type: ${productDetails!['variant_type_name'] ?? ''} - ${productDetails!['variant_option_name'] ?? ''}',
-//                       style: TextStyle(color: Colors.brown, fontSize: 14),
-//                     ),
-//                     SizedBox(height: 6),
-//                     Text(
-//                       'Price: ₹${productDetails!['price'] ?? '0'}',
-//                       style: TextStyle(
-//                         color: Colors.green[800],
-//                         fontSize: 16,
-//                         fontWeight: FontWeight.bold,
-//                       ),
-//                     ),
-//                     if (productDetails!['discount_price'] != null &&
-//                         productDetails!['discount_price'] !=
-//                             productDetails!['price'])
-//                       Padding(
-//                         padding: const EdgeInsets.only(top: 4.0),
-//                         child: Text(
-//                           'Original Price: ₹${productDetails!['discount_price']}',
-//                           style: TextStyle(
-//                             color: Colors.grey,
-//                             fontSize: 14,
-//                             decoration: TextDecoration.lineThrough,
-//                           ),
-//                         ),
-//                       ),
-//                     SizedBox(height: 12),
-//                     Divider(),
-//                     SizedBox(height: 6),
-//                     if (productDetails!['purity'] != null)
-//                       Text(
-//                         'Purity: ${productDetails!['purity']}%',
-//                         style: TextStyle(color: Colors.brown, fontSize: 14),
-//                       ),
-//                     if (productDetails!['purity'] != null) SizedBox(height: 6),
-
-//                     if (productDetails!['metal_weight'] != null)
-//                       Text(
-//                         'Weight: ${productDetails!['metal_weight']} gm',
-//                         style: TextStyle(color: Colors.brown, fontSize: 14),
-//                       ),
-//                     if (productDetails!['metal_weight'] != null)
-//                       SizedBox(height: 6),
-
-//                     if (productDetails!['mprice'] != null)
-//                       Text(
-//                         'Rate per gram: ₹${productDetails!['mprice']}',
-//                         style: TextStyle(color: Colors.brown, fontSize: 14),
-//                       ),
-//                     if (productDetails!['mprice'] != null) SizedBox(height: 6),
-
-//                     if (productDetails!['making_charges'] != null)
-//                       Text(
-//                         'Making Charges: ${productDetails!['making_charges']}%',
-//                         style: TextStyle(color: Colors.brown, fontSize: 14),
-//                       ),
-//                     if (productDetails!['making_charges'] != null)
-//                       SizedBox(height: 6),
-
-//                     if (productDetails!['wastage_percent'] != null)
-//                       Text(
-//                         'Wastage: ${productDetails!['wastage_percent']}%',
-//                         style: TextStyle(color: Colors.brown, fontSize: 14),
-//                       ),
-//                     if (productDetails!['wastage_percent'] != null)
-//                       SizedBox(height: 6),
-
-//                     if (productDetails!['delivery_days'] != null)
-//                       Text(
-//                         'Delivery Days: ${productDetails!['delivery_days']}',
-//                         style: TextStyle(color: Colors.brown, fontSize: 14),
-//                       ),
-//                   ],
-//                 ),
-//               ),
-
-//               SizedBox(height: 16),
-
-//               // Variants Selection
-//               if (variants.length > 1)
-//                 Container(
-//                   padding: EdgeInsets.all(12),
-//                   decoration: BoxDecoration(
-//                     color: Colors.white,
-//                     borderRadius: BorderRadius.circular(8),
-//                     boxShadow: [
-//                       BoxShadow(blurRadius: 5, color: Colors.brown.shade100),
-//                     ],
-//                   ),
-//                   child: Column(
-//                     crossAxisAlignment: CrossAxisAlignment.start,
-//                     children: [
-//                       Text(
-//                         'Available Variants',
-//                         style: TextStyle(
-//                           fontWeight: FontWeight.bold,
-//                           color: Colors.brown,
-//                         ),
-//                       ),
-//                       SizedBox(height: 10),
-//                       Wrap(
-//                         spacing: 8,
-//                         runSpacing: 8,
-//                         children:
-//                             variants.map((variant) {
-//                               bool isSelected = variant == productDetails;
-//                               return GestureDetector(
-//                                 onTap: () {
-//                                   setState(() {
-//                                     productDetails = variant;
-//                                   });
-//                                 },
-//                                 child: Container(
-//                                   padding: EdgeInsets.symmetric(
-//                                     horizontal: 12,
-//                                     vertical: 8,
-//                                   ),
-//                                   decoration: BoxDecoration(
-//                                     border: Border.all(
-//                                       color:
-//                                           isSelected
-//                                               ? Colors.brown
-//                                               : Colors.grey,
-//                                     ),
-//                                     borderRadius: BorderRadius.circular(20),
-//                                     color:
-//                                         isSelected
-//                                             ? Colors.brown.shade50
-//                                             : Colors.white,
-//                                   ),
-//                                   child: Text(
-//                                     variant['variant_option_name'] ?? '',
-//                                     style: TextStyle(
-//                                       color:
-//                                           isSelected
-//                                               ? Colors.brown
-//                                               : Colors.grey,
-//                                     ),
-//                                   ),
-//                                 ),
-//                               );
-//                             }).toList(),
-//                       ),
-//                     ],
-//                   ),
-//                 ),
-
-//               SizedBox(height: 16),
-//               _expansionTile(
-//                 'Description',
-//                 productDetails!['variant_option_description'] ??
-//                     'No description available',
-//               ),
-//               _expansionTile(
-//                 'Product Specification',
-//                 'Metal Type: ${productDetails!['metal_type_name'] ?? 'Not specified'}\nStock: ${productDetails!['stock'] ?? '0'} units available',
-//               ),
-
-//               SizedBox(height: 16),
-
-//               // Add this button before the bottomNavigationBar
-//               SizedBox(
-//                 width: double.infinity,
-//                 child: ElevatedButton(
-//                   style: ElevatedButton.styleFrom(
-//                     backgroundColor: Colors.brown,
-//                     padding: EdgeInsets.symmetric(vertical: 14),
-//                   ),
-//                   onPressed: () {
-//                     showModalBottomSheet(
-//                       context: context,
-//                       shape: RoundedRectangleBorder(
-//                         borderRadius: BorderRadius.vertical(
-//                           top: Radius.circular(16),
-//                         ),
-//                       ),
-//                       builder:
-//                           (context) => BuyByGramsSheet(
-//                             pricePerGram:
-//                                 double.tryParse(
-//                                   productDetails!['mprice']?.toString() ?? '0',
-//                                 ) ??
-//                                 0,
-//                           ),
-//                     );
-//                   },
-//                   child: Text(
-//                     'Buy By Grams',
-//                     style: TextStyle(color: Colors.white),
-//                   ),
-//                 ),
-//               ),
-//             ],
-//           ),
-//         ),
-//       ),
-//       bottomNavigationBar: Container(
-//         padding: EdgeInsets.all(16),
-//         color: Colors.brown,
-//         child: SizedBox(
-//           width: double.infinity,
-//           child: ElevatedButton(
-//             style: ElevatedButton.styleFrom(
-//               backgroundColor: Colors.brown,
-//               padding: EdgeInsets.symmetric(vertical: 14),
-//             ),
-
-//             onPressed: () async {
-//               SharedPreferences prefs = await SharedPreferences.getInstance();
-//               String? userId = prefs.getString('user_id');
-
-//               if (userId != null && userId.isNotEmpty) {
-//                 Navigator.pushReplacement(
-//                   context,
-//                   MaterialPageRoute(
-//                     builder:
-//                         (_) => OrderSummaryPage(
-//                           productDetails: productDetails ?? {},
-//                           userId: userId, // Correctly pass user ID
-//                           address: Address(
-//                             id: '',
-//                             doorNo: '',
-//                             streetName: '',
-//                             area: '',
-//                             city: '',
-//                             district: '',
-//                             pincode: '',
-//                           ),
-//                         ),
-//                   ),
-//                 );
-//               } else {
-//                 ScaffoldMessenger.of(context).showSnackBar(
-//                   SnackBar(
-//                     content: Text("User ID not found. Please log in again."),
-//                   ),
-//                 );
-//               }
-//             },
-
-//             child: Text(
-//               'Proceed to Buy',
-//               style: TextStyle(color: Colors.white),
-//             ),
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-
-//   Widget _expansionTile(String title, String content) {
-//     return ExpansionTile(
-//       title: Text(
-//         title,
-//         style: TextStyle(fontWeight: FontWeight.bold, color: Colors.brown),
-//       ),
-//       children: [
-//         Padding(
-//           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-//           child: Text(
-//             content,
-//             style: TextStyle(fontSize: 13, color: Colors.grey),
-//           ),
-//         ),
-//       ],
-//     );
-//   }
-// }
-
-// class BuyByGramsSheet extends StatefulWidget {
-//   final double pricePerGram;
-//   BuyByGramsSheet({required this.pricePerGram});
-
-//   @override
-//   _BuyByGramsSheetState createState() => _BuyByGramsSheetState();
-// }
-
-// class _BuyByGramsSheetState extends State<BuyByGramsSheet> {
-//   double grams = 1;
-//   @override
-//   Widget build(BuildContext context) {
-//     double total = grams * widget.pricePerGram;
-//     return Padding(
-//       padding: const EdgeInsets.all(24.0),
-//       child: Column(
-//         mainAxisSize: MainAxisSize.min,
-//         children: [
-//           Text(
-//             'Enter grams:',
-//             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-//           ),
-//           SizedBox(height: 12),
-//           Row(
-//             children: [
-//               Expanded(
-//                 child: TextField(
-//                   keyboardType: TextInputType.numberWithOptions(decimal: true),
-//                   decoration: InputDecoration(
-//                     border: OutlineInputBorder(),
-//                     hintText: 'e.g. 2.5',
-//                   ),
-//                   onChanged: (val) {
-//                     setState(() {
-//                       grams = double.tryParse(val) ?? 1;
-//                     });
-//                   },
-//                 ),
-//               ),
-//               SizedBox(width: 12),
-//               Text('g', style: TextStyle(fontSize: 16)),
-//             ],
-//           ),
-//           SizedBox(height: 16),
-//           Text(
-//             'Total Price: ₹${total.toStringAsFixed(2)}',
-//             style: TextStyle(
-//               fontWeight: FontWeight.bold,
-//               color: Colors.brown,
-//               fontSize: 18,
-//             ),
-//           ),
-//           SizedBox(height: 16),
-//           ElevatedButton(
-//             style: ElevatedButton.styleFrom(backgroundColor: Colors.brown),
-//             onPressed: () {
-//               // Handle purchase logic here
-//               Navigator.pop(context);
-//             },
-//             child: Text(
-//               'Proceed to Buy',
-//               style: TextStyle(color: Colors.white),
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
-
-//New Updated code
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -805,6 +104,43 @@ class _DetailsPageState extends State<DetailsPage> {
       ),
       orElse: () => selectedOptions.values.first,
     );
+  }
+
+  double _calculateFinalPrice() {
+    if (productDetails == null) return 0;
+
+    double metalWeight =
+        double.tryParse(productDetails!['metal_weight']?.toString() ?? '0') ??
+        0;
+    double stoneWeight =
+        double.tryParse(productDetails!['stone_weight']?.toString() ?? '0') ??
+        0;
+    double makingPercent =
+        double.tryParse(productDetails!['making_charges']?.toString() ?? '0') ??
+        0;
+    double wastagePercent =
+        double.tryParse(
+          productDetails!['wastage_percent']?.toString() ?? '0',
+        ) ??
+        0;
+    double metalRate =
+        double.tryParse(productDetails!['mprice']?.toString() ?? '0') ?? 0;
+    double discountAmount =
+        double.tryParse(productDetails!['discount_price']?.toString() ?? '0') ??
+        0;
+
+    double metalValue = metalRate * metalWeight;
+    double wastageCharges = metalValue * wastagePercent / 100;
+    double makingCharges = metalValue * makingPercent / 100;
+    double stoneRate = stoneWeight > 0 ? 50000 : 0;
+    double stoneValue = stoneRate * stoneWeight;
+
+    double subtotal = metalValue + wastageCharges + makingCharges + stoneValue;
+    double gst = subtotal * 0.03;
+    double totalBeforeDiscount = subtotal + gst;
+    double finalPrice = totalBeforeDiscount - discountAmount;
+
+    return finalPrice;
   }
 
   Widget _variantSelectors() {
@@ -922,7 +258,7 @@ class _DetailsPageState extends State<DetailsPage> {
         } else {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(SnackBar(content: Text('Already in wishlist')));
+          ).showSnackBar(SnackBar(content: Text('Failed to update wishlist')));
         }
       }
     } catch (e) {
@@ -938,9 +274,8 @@ class _DetailsPageState extends State<DetailsPage> {
     setState(() => isAddingToCart = true);
     try {
       String cleanProductId = widget.productId.replaceAll('"', '');
-      String unitPrice = productDetails!['price']?.toString() ?? '0';
-      String unitMrp =
-          productDetails!['discount_price']?.toString() ?? unitPrice;
+      String unitPrice = _calculateFinalPrice().toStringAsFixed(2);
+      String unitMrp = productDetails!['price']?.toString() ?? unitPrice;
       String totalPrice = unitPrice;
       String totalMrp = unitMrp;
 
@@ -1043,6 +378,262 @@ class _DetailsPageState extends State<DetailsPage> {
       ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
     setState(() => isAddingToCart = false);
+  }
+
+  Widget _buildPriceBreakdown() {
+    if (productDetails == null) return SizedBox();
+
+    // Extract & calculate values (same as before)
+    double basePrice =
+        double.tryParse(productDetails!['price']?.toString() ?? '0') ?? 0;
+    double discountAmount =
+        double.tryParse(productDetails!['discount_price']?.toString() ?? '0') ??
+        0;
+    double metalWeight =
+        double.tryParse(productDetails!['metal_weight']?.toString() ?? '0') ??
+        0;
+    double stoneWeight =
+        double.tryParse(productDetails!['stone_weight']?.toString() ?? '0') ??
+        0;
+    double makingPercent =
+        double.tryParse(productDetails!['making_charges']?.toString() ?? '0') ??
+        0;
+    double wastagePercent =
+        double.tryParse(
+          productDetails!['wastage_percent']?.toString() ?? '0',
+        ) ??
+        0;
+    double metalRate =
+        double.tryParse(productDetails!['mprice']?.toString() ?? '0') ?? 0;
+
+    double metalValue = metalRate * metalWeight;
+    double wastageCharges = metalValue * wastagePercent / 100;
+    double makingCharges = metalValue * makingPercent / 100;
+    double stoneRate = stoneWeight > 0 ? 50000 : 0;
+    double stoneValue = stoneRate * stoneWeight;
+
+    double subtotal = metalValue + wastageCharges + makingCharges + stoneValue;
+    double gst = subtotal * 0.03;
+    double totalBeforeDiscount = subtotal + gst;
+    double finalPrice = totalBeforeDiscount - discountAmount;
+    double grandTotal = finalPrice;
+
+    return Container(
+      margin: EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.brown.shade100, blurRadius: 6)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '🧾 Price Breakdown',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.brown.shade700,
+            ),
+          ),
+          SizedBox(height: 12),
+
+          _buildSummaryRow("Base Price", "₹${basePrice.toStringAsFixed(2)}"),
+          _buildSummaryRow(
+            "Discount",
+            "-₹${discountAmount.toStringAsFixed(2)}",
+          ),
+          Divider(),
+
+          _sectionTitle("Metal Details"),
+          _buildDetailRow(
+            '${productDetails!['purity'] ?? '22'}K ${productDetails!['metal_type_name'] ?? 'Gold'}',
+            '₹${metalRate.toStringAsFixed(0)}',
+            '${metalWeight.toStringAsFixed(1)}g',
+            '₹${metalValue.toStringAsFixed(2)}',
+          ),
+          _buildDetailRow(
+            "Wastage Charges",
+            '',
+            '${wastagePercent.toStringAsFixed(0)}%',
+            '₹${wastageCharges.toStringAsFixed(2)}',
+          ),
+          _buildDetailRow(
+            "Making Charges",
+            '',
+            '${makingPercent.toStringAsFixed(0)}%',
+            '₹${makingCharges.toStringAsFixed(2)}',
+          ),
+
+          if (stoneWeight > 0) ...[
+            SizedBox(height: 10),
+            _sectionTitle("Stone Details"),
+            _buildDetailRow(
+              'Stone (${stoneWeight.toStringAsFixed(2)}g)',
+              '₹${stoneRate.toStringAsFixed(0)}',
+              '${stoneWeight.toStringAsFixed(2)}g',
+              '₹${stoneValue.toStringAsFixed(2)}',
+            ),
+          ],
+
+          Divider(),
+          _buildSummaryRow("Subtotal", "₹${subtotal.toStringAsFixed(2)}"),
+          _buildSummaryRow("GST (3%)", "₹${gst.toStringAsFixed(2)}"),
+
+          Divider(thickness: 1.5),
+          _buildSummaryRow(
+            "Final Price",
+            "₹${grandTotal.toStringAsFixed(2)}",
+            isBold: true,
+            isHighlight: true,
+          ),
+
+          SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.brown.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.brown.shade100),
+            ),
+            child: Center(
+              child: Text(
+                'Grand Total: ₹${grandTotal.toStringAsFixed(2)}',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.brown,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+Widget _sectionTitle(String title) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8.0),
+    child: Text(
+      title,
+      style: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: Colors.brown.shade600,
+      ),
+    ),
+  );
+}
+
+Widget _buildDetailRow(String component, String rate, String weight, String value) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4.0),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(flex: 4, child: Text(component)),
+        Expanded(flex: 2, child: Text(rate, textAlign: TextAlign.right)),
+        Expanded(flex: 2, child: Text(weight, textAlign: TextAlign.right)),
+        Expanded(flex: 3, child: Text(value, textAlign: TextAlign.right)),
+      ],
+    ),
+  );
+}
+
+Widget _buildSummaryRow(String label, String value, {bool isBold = false, bool isHighlight = false}) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4.0),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+            color: isHighlight ? Colors.brown : Colors.black,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+            color: isHighlight ? Colors.brown.shade800 : Colors.black87,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+
+  Widget _buildPriceRow(
+    String component,
+    String rate,
+    String weight,
+    String value, {
+    bool isTotal = false,
+    bool isGrandTotal = false,
+  }) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 3,
+            child: Text(
+              component,
+              style: TextStyle(
+                fontWeight:
+                    isTotal || isGrandTotal
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                color: isGrandTotal ? Colors.brown : Colors.black,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              rate,
+              style: TextStyle(
+                fontWeight:
+                    isTotal || isGrandTotal
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              weight,
+              style: TextStyle(
+                fontWeight:
+                    isTotal || isGrandTotal
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              value,
+              style: TextStyle(
+                fontWeight:
+                    isTotal || isGrandTotal
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                color: isGrandTotal ? Colors.brown : Colors.black,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _expansionTile(String title, String content) {
@@ -1212,7 +803,7 @@ class _DetailsPageState extends State<DetailsPage> {
                     ),
                     SizedBox(height: 6),
                     Text(
-                      'Price: ₹${productDetails!['price'] ?? '0'}',
+                      'Final Price: ₹${_calculateFinalPrice().toStringAsFixed(2)}',
                       style: TextStyle(
                         color: Colors.green[800],
                         fontSize: 16,
@@ -1220,16 +811,22 @@ class _DetailsPageState extends State<DetailsPage> {
                       ),
                     ),
                     if (productDetails!['discount_price'] != null &&
-                        productDetails!['discount_price'] !=
-                            productDetails!['price'])
+                        double.tryParse(
+                              productDetails!['discount_price'].toString(),
+                            ) !=
+                            null &&
+                        double.tryParse(
+                              productDetails!['discount_price'].toString(),
+                            )! >
+                            0)
                       Padding(
                         padding: const EdgeInsets.only(top: 4.0),
                         child: Text(
-                          'Original Price: ₹${productDetails!['discount_price']}',
+                          'You Save: ₹${productDetails!['discount_price']}',
                           style: TextStyle(
-                            color: Colors.grey,
+                            color: Colors.red,
                             fontSize: 14,
-                            decoration: TextDecoration.lineThrough,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
@@ -1312,6 +909,8 @@ class _DetailsPageState extends State<DetailsPage> {
               ),
               SizedBox(height: 16),
               _variantSelectors(),
+              SizedBox(height: 16),
+              _buildPriceBreakdown(),
               SizedBox(height: 16),
               _expansionTile(
                 'Description',

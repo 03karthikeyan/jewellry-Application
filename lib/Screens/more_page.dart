@@ -117,27 +117,29 @@ class MorePage extends StatelessWidget {
                         content: Text('Are you sure you want to log out?'),
                         actions: [
                           TextButton(
-                            onPressed: () => Navigator.pop(context),
+                            onPressed:
+                                () => Navigator.pop(context), // Close dialog
                             child: Text('Cancel'),
                           ),
                           TextButton(
                             onPressed: () async {
-                              // Close dialog first
-                              Navigator.pop(context);
-                              await Future.delayed(Duration(milliseconds: 300));
-                              // Clear SharedPreferences
+                              // Close the dialog first
+                              Navigator.of(context, rootNavigator: true).pop();
+
+                              // Clear user_id from SharedPreferences
                               final prefs =
                                   await SharedPreferences.getInstance();
                               await prefs.remove('user_id');
 
-                              // Navigate to login screen and remove all previous routes
-                              Navigator.pushAndRemoveUntil(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => LoginScreen(),
-                                ),
-                                (route) => false,
-                              );
+                              // Navigate to login and clear all previous routes
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                Navigator.of(context).pushAndRemoveUntil(
+                                  MaterialPageRoute(
+                                    builder: (context) => LoginScreen(),
+                                  ),
+                                  (route) => false,
+                                );
+                              });
                             },
                             child: Text('Logout'),
                           ),

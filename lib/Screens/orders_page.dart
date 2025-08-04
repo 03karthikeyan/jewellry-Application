@@ -41,6 +41,31 @@ class _OrdersPageState extends State<OrdersPage>
     fetchWishlist();
   }
 
+  //Cart Tab method
+
+  void _updateQuantity(String cartId, int change) {
+    setState(() {
+      final index = cart.indexWhere((item) => item['cart_id'] == cartId);
+      if (index != -1) {
+        int qty = int.tryParse(cart[index]['quantity'].toString()) ?? 1;
+        qty += change;
+        if (qty > 0) cart[index]['quantity'] = qty;
+      }
+    });
+  }
+
+  double _calculateTotalPrice() {
+    return cart.fold(0, (sum, item) {
+      double price = double.tryParse(item['unit_price'].toString()) ?? 0;
+      int qty = int.tryParse(item['quantity'].toString()) ?? 1;
+      return sum + (price * qty);
+    });
+  }
+
+  void _goToCheckout() {
+    // Navigate to checkout screen
+  }
+
   Future<void> fetchCart() async {
     try {
       final response = await http.get(
@@ -327,11 +352,11 @@ class _OrdersPageState extends State<OrdersPage>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.shopping_bag_outlined),
+              Icon(Icons.shopping_bag_outlined, size: 48, color: Colors.grey),
               SizedBox(height: 16),
               Text(
                 "You haven't placed any orders yet!",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               SizedBox(height: 8),
               Text(
@@ -347,26 +372,119 @@ class _OrdersPageState extends State<OrdersPage>
           itemCount: orders.length,
           itemBuilder: (context, index) {
             final order = orders[index];
-            return OrderCard(
-              orderId: order["order_id"] ?? '',
-              productName: order["productName"] ?? '',
-              productImage: order["productImage"] ?? '',
-              price: order["price"] ?? '',
-              status: order["status"] ?? '',
-              date: order["date"] ?? '',
+            final product = order['product_details'] ?? {};
+            final imageUrl =
+                product['image'] != null
+                    ? 'https://pheonixconstructions.com/admin/uploads/${product['image']}'
+                    : '';
+
+            return GestureDetector(
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder:
                         (context) => OrderDetailsPage(
-                          orderId: int.parse(
-                            order["order_id"],
-                          ), // ensure it's an int
+                          orderId: int.parse(order["order_id"].toString()),
                         ),
                   ),
                 );
               },
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade300),
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.shade200,
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      // borderRadius: BorderRadius.horizontal(
+                      //   left: Radius.circular(12),
+                      // ),
+                      child:
+                          imageUrl.isNotEmpty
+                              ? Image.network(
+                                imageUrl,
+                                width: 100,
+                                height: 100,
+                                fit: BoxFit.cover,
+                                errorBuilder:
+                                    (context, error, stackTrace) => Container(
+                                      width: 100,
+                                      height: 100,
+                                      color: Colors.grey[200],
+                                      child: Icon(
+                                        Icons.broken_image,
+                                        color: Colors.brown,
+                                      ),
+                                    ),
+                              )
+                              : Container(
+                                width: 100,
+                                height: 100,
+                                color: Colors.grey[200],
+                                child: Icon(
+                                  Icons.broken_image,
+                                  color: Colors.brown,
+                                ),
+                              ),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              product['product_name'] ?? 'Product Name',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            SizedBox(height: 6),
+                            Text(
+                              "Order ID: ${order['order_id']}",
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                            SizedBox(height: 6),
+                            Text(
+                              "₹ ${order['total_price']}",
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.brown,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              order['created_at'] ?? '',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             );
           },
         );
@@ -399,17 +517,18 @@ class _OrdersPageState extends State<OrdersPage>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Cart Items (${cart.length})',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    'My Cart (${cart.length})',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   ElevatedButton(
                     onPressed: _clearAllCart,
-                    child: Text(
-                      'Clear All',
-                      style: TextStyle(color: Colors.white),
-                    ),
+                    child: Text('Clear All'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
                 ],
@@ -422,23 +541,179 @@ class _OrdersPageState extends State<OrdersPage>
                 itemBuilder: (context, index) {
                   final item = cart[index];
                   return Card(
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     margin: EdgeInsets.only(bottom: 16),
-                    child: ListTile(
-                      leading: Icon(Icons.shopping_cart, color: Colors.brown),
-                      title: Text(item['product_name'] ?? 'Product'),
-                      subtitle: Text(
-                        '₹${item['unit_price'] ?? '0'} x ${item['quantity'] ?? 1}',
-                      ),
-                      trailing: IconButton(
-                        icon: Icon(Icons.delete, color: Colors.red),
-                        onPressed:
-                            () => _deleteCartItem(
-                              item['cart_id']?.toString() ?? '',
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Row(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child:
+                                item['product_image'] != null &&
+                                        item['product_image']
+                                            .toString()
+                                            .trim()
+                                            .isNotEmpty
+                                    ? Image.network(
+                                      item['product_image'],
+                                      width: 70,
+                                      height: 70,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (
+                                        context,
+                                        error,
+                                        stackTrace,
+                                      ) {
+                                        return Container(
+                                          width: 70,
+                                          height: 70,
+                                          color: Colors.grey[200],
+                                          child: Icon(
+                                            Icons.broken_image,
+                                            size: 30,
+                                            color: Colors.brown,
+                                          ),
+                                        );
+                                      },
+                                    )
+                                    : Container(
+                                      width: 70,
+                                      height: 70,
+                                      color: Colors.grey[200],
+                                      child: Icon(
+                                        Icons.broken_image,
+                                        size: 30,
+                                        color: Colors.brown,
+                                      ),
+                                    ),
+                          ),
+
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item['product_name'] ?? 'Product',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                SizedBox(height: 6),
+                                Text(
+                                  '₹${item['unit_price']}',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.brown,
+                                  ),
+                                ),
+                                SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    // IconButton(
+                                    //   icon: Icon(Icons.remove_circle_outline),
+                                    //   onPressed:
+                                    //       () => _updateQuantity(
+                                    //         item['cart_id'],
+                                    //         -1,
+                                    //       ),
+                                    // ),
+                                    Text(
+                                      'Quantity: ${item['quantity']}',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    // IconButton(
+                                    //   icon: Icon(Icons.add_circle_outline),
+                                    //   onPressed:
+                                    //       () => _updateQuantity(
+                                    //         item['cart_id'],
+                                    //         1,
+                                    //       ),
+                                    // ),
+                                  ],
+                                ),
+                              ],
                             ),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete, color: Colors.red),
+                            onPressed:
+                                () => _deleteCartItem(
+                                  item['cart_id']?.toString() ?? '',
+                                ),
+                          ),
+                        ],
                       ),
                     ),
                   );
                 },
+              ),
+            ),
+            // 🟨 Sticky Bottom Section
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.brown.shade50,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 8,
+                    offset: Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Total:',
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        '₹${_calculateTotalPrice()}',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.brown,
+                        ),
+                      ),
+                    ],
+                  ),
+                  ElevatedButton(
+                    onPressed: _goToCheckout,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.brown,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 14,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: Text(
+                      'Checkout',
+                      style: TextStyle(fontSize: 16, color: Colors.white),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -469,16 +744,106 @@ class _OrdersPageState extends State<OrdersPage>
           itemCount: wishlist.length,
           itemBuilder: (context, index) {
             final item = wishlist[index];
+            final imageUrl = item['product_image'] ?? '';
+
             return Card(
+              elevation: 3,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               margin: EdgeInsets.only(bottom: 16),
-              child: ListTile(
-                leading: Icon(Icons.favorite, color: Colors.red),
-                title: Text(item['pname'] ?? 'Product'),
-                subtitle: Text(item['product_details'] ?? 'No description'),
-                trailing: IconButton(
-                  icon: Icon(Icons.remove_circle, color: Colors.red),
-                  onPressed:
-                      () => _removeWishlistItem(item['id']?.toString() ?? ''),
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    //  Product Image with fallback
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child:
+                          imageUrl.isNotEmpty
+                              ? Image.network(
+                                imageUrl,
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    width: 80,
+                                    height: 80,
+                                    color: Colors.grey.shade200,
+                                    child: Icon(
+                                      Icons.broken_image,
+                                      color: Colors.grey,
+                                    ),
+                                  );
+                                },
+                              )
+                              : Container(
+                                width: 80,
+                                height: 80,
+                                color: Colors.grey.shade200,
+                                child: Icon(
+                                  Icons.broken_image,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                    ),
+                    SizedBox(width: 12),
+                    // Product Info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item['pname'] ?? 'Product Name',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.brown.shade800,
+                            ),
+                          ),
+                          SizedBox(height: 6),
+                          Text(
+                            item['product_details'] ??
+                                'No description available.',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[700],
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            (item['price'] != null &&
+                                    item['price'].toString().trim().isNotEmpty)
+                                ? '₹${item['price']}'
+                                : 'Price on Request',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color:
+                                  (item['price'] != null &&
+                                          item['price']
+                                              .toString()
+                                              .trim()
+                                              .isNotEmpty)
+                                      ? Colors.brown
+                                      : Colors.orange,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    //  Remove Button
+                    IconButton(
+                      icon: Icon(Icons.delete_outline, color: Colors.red),
+                      onPressed:
+                          () =>
+                              _removeWishlistItem(item['id']?.toString() ?? ''),
+                    ),
+                  ],
                 ),
               ),
             );

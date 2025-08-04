@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:jewellery/Screens/login_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -258,13 +259,13 @@ class _ProfilePageState extends State<ProfilePage> {
                               // Navigate to Order History Page
                             },
                           ),
-                          ProfileOptionCard(
-                            icon: Icons.location_on,
-                            title: 'Manage Addresses',
-                            onTap: () {
-                              // Navigate to Manage Addresses Page
-                            },
-                          ),
+                          // ProfileOptionCard(
+                          //   icon: Icons.location_on,
+                          //   title: 'Manage Addresses',
+                          //   onTap: () {
+                          //     // Navigate to Manage Addresses Page
+                          //   },
+                          // ),
                           ProfileOptionCard(
                             icon: Icons.notifications,
                             title: 'Notifications',
@@ -297,7 +298,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           minimumSize: Size(double.infinity, 48),
                         ),
                         onPressed: () {
-                          // Handle Logout
+                          // Show confirmation dialog
                           showDialog(
                             context: context,
                             builder:
@@ -308,13 +309,39 @@ class _ProfilePageState extends State<ProfilePage> {
                                   ),
                                   actions: [
                                     TextButton(
-                                      onPressed: () => Navigator.pop(context),
+                                      onPressed:
+                                          () => Navigator.pop(
+                                            context,
+                                          ), // Close dialog
                                       child: Text('Cancel'),
                                     ),
                                     TextButton(
-                                      onPressed: () {
-                                        // Perform logout action and navigate to login screen
-                                        Navigator.pop(context); // Close dialog
+                                      onPressed: () async {
+                                        // Close the dialog first
+                                        Navigator.of(
+                                          context,
+                                          rootNavigator: true,
+                                        ).pop();
+
+                                        // Clear user_id from SharedPreferences
+                                        final prefs =
+                                            await SharedPreferences.getInstance();
+                                        await prefs.remove('user_id');
+
+                                        // Navigate to login and clear all previous routes
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((_) {
+                                              Navigator.of(
+                                                context,
+                                              ).pushAndRemoveUntil(
+                                                MaterialPageRoute(
+                                                  builder:
+                                                      (context) =>
+                                                          LoginScreen(),
+                                                ),
+                                                (route) => false,
+                                              );
+                                            });
                                       },
                                       child: Text('Logout'),
                                     ),

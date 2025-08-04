@@ -125,6 +125,7 @@ class RingsPage extends StatelessWidget {
                               // price: '₹123000', // fallback
                               imagePath: '',
                               productId: 'product.id', // this is key
+                              
                             ),
                       ),
                     );
