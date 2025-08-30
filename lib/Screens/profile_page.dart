@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:jewellery/Screens/login_screen.dart';
+import 'package:jewellery/Screens/orders_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -70,57 +71,111 @@ class _ProfilePageState extends State<ProfilePage> {
           (context) => StatefulBuilder(
             builder:
                 (context, setDialogState) => AlertDialog(
-                  title: Text('Edit Profile'),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  title: Text(
+                    'Edit Profile',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   content: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TextField(
-                          controller: firstNameController,
-                          decoration: InputDecoration(labelText: 'First Name'),
-                        ),
-                        TextField(
-                          controller: lastNameController,
-                          decoration: InputDecoration(labelText: 'Last Name'),
-                        ),
-                        TextField(
-                          controller: emailController,
-                          decoration: InputDecoration(labelText: 'Email'),
-                        ),
-                        SizedBox(height: 16),
-                        DropdownButtonFormField<String>(
-                          value: selectedGender,
-                          decoration: InputDecoration(labelText: 'Gender'),
-                          items:
-                              ['MALE', 'FEMALE']
-                                  .map(
-                                    (gender) => DropdownMenuItem(
-                                      value: gender,
-                                      child: Text(gender),
-                                    ),
-                                  )
-                                  .toList(),
-                          onChanged:
-                              (value) =>
-                                  setDialogState(() => selectedGender = value!),
-                        ),
-                      ],
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TextField(
+                            controller: firstNameController,
+                            decoration: InputDecoration(
+                              labelText: 'First Name',
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 12),
+                          TextField(
+                            controller: lastNameController,
+                            decoration: InputDecoration(
+                              labelText: 'Last Name',
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 12),
+                          TextField(
+                            controller: emailController,
+                            decoration: InputDecoration(
+                              labelText: 'Email',
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                            keyboardType: TextInputType.emailAddress,
+                          ),
+                          SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            value: selectedGender,
+                            decoration: InputDecoration(
+                              labelText: 'Gender',
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                            items:
+                                ['MALE', 'FEMALE']
+                                    .map(
+                                      (gender) => DropdownMenuItem(
+                                        value: gender,
+                                        child: Text(gender),
+                                      ),
+                                    )
+                                    .toList(),
+                            onChanged:
+                                (value) => setDialogState(
+                                  () => selectedGender = value!,
+                                ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
+                  actionsPadding: EdgeInsets.only(right: 16, bottom: 8),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
                       child: Text('Cancel'),
                     ),
                     ElevatedButton(
-                      onPressed:
-                          () => _updateProfile(
-                            firstNameController.text,
-                            lastNameController.text,
-                            emailController.text,
-                            selectedGender,
-                          ),
-                      child: Text('Save'),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _updateProfile(
+                          firstNameController.text,
+                          lastNameController.text,
+                          emailController.text,
+                          selectedGender,
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                        backgroundColor: Colors.brown,
+                      ),
+                      child: Text(
+                        'Save',
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                   ],
                 ),
@@ -256,7 +311,10 @@ class _ProfilePageState extends State<ProfilePage> {
                             icon: Icons.history,
                             title: 'Order History',
                             onTap: () {
-                              // Navigate to Order History Page
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => OrdersPage()),
+                              );
                             },
                           ),
                           // ProfileOptionCard(

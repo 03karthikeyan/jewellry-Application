@@ -118,7 +118,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(title: Text('Register'), backgroundColor: Colors.brown),
+      appBar: AppBar(
+        title: Text('Register', style: TextStyle(color: Colors.brown)),
+        backgroundColor: Colors.white,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.brown),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -186,7 +193,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           )
                           : Text(
                             'REGISTER',
-                            style: TextStyle(fontSize: 16, letterSpacing: 1),
+                            style: TextStyle(
+                              fontSize: 16,
+                              letterSpacing: 1,
+                              color: Colors.white,
+                            ),
                           ),
                 ),
               ),

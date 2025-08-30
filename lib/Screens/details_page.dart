@@ -199,36 +199,52 @@ class _DetailsPageState extends State<DetailsPage> {
     );
   }
 
+  void showWishlistSnackBar(String message, IconData icon, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Colors.white,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        content: Row(
+          children: [
+            Icon(icon, color: color),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(message, style: TextStyle(color: Colors.black)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> checkWishlistStatus() async {
-    if (userId == null) return;
-    setState(() => isWishlistLoading = true);
-    try {
-      String cleanProductId = widget.productId.replaceAll('"', '');
-      final url =
-          'https://pheonixconstructions.com/mobile/checkWishlist.php?user_id=$userId&product_id=$cleanProductId';
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        bool isInList = false;
-        if (data.containsKey('result') && data['result'] == 'Success')
-          isInList = true;
-        if (data.containsKey('exists') && data['exists'] == true)
-          isInList = true;
-        if (data.containsKey('status') && data['status'] == 'found')
-          isInList = true;
-        setState(() {
-          isInWishlist = isInList;
-        });
-      }
-    } catch (e) {}
-    setState(() => isWishlistLoading = false);
+    final response = await http.get(
+      Uri.parse(
+        'https://pheonixconstructions.com/mobile/fetchWishlist.php?user_id=$userId',
+      ),
+    );
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      List wishlistItems = data['wishlist'] ?? [];
+      bool found = wishlistItems.any(
+        (item) => item['product_id'].toString() == widget.productId.toString(),
+      );
+      setState(() {
+        isInWishlist = found;
+      });
+    }
   }
 
   Future<void> toggleWishlist() async {
     if (userId == null || isWishlistLoading) return;
     setState(() => isWishlistLoading = true);
+
     try {
-      String cleanProductId = widget.productId.replaceAll('"', '');
+      String cleanProductId = widget.productId.replaceAll('"', '').trim();
+
+      // Attempt toggle
       final url =
           isInWishlist
               ? 'https://pheonixconstructions.com/mobile/wishlistRemove.php?user_id=$userId&product_id=$cleanProductId'
@@ -237,23 +253,57 @@ class _DetailsPageState extends State<DetailsPage> {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        print("Wishlist response: $data");
+
         bool isSuccess = false;
+
+        // ✅ Check for normal success
         if (data.containsKey('result') && data['result'] == 'Success')
           isSuccess = true;
-        if (data.containsKey('success') && data['success'] == 1)
+        if (data.containsKey('success') && data['success'].toString() == '1')
           isSuccess = true;
-        if (data.containsKey('status') && data['status'] == 'success')
+        if (data.containsKey('status') &&
+            data['status'].toString().toLowerCase() == 'success')
           isSuccess = true;
-        if (isSuccess) {
+
+        // ✅ SPECIAL CASE: Already in wishlist → remove it
+        if (data['result'] == 'failed' &&
+            data['text'] == 'Product is already in wishlist!') {
+          // Force remove it
+          final removeResponse = await http.get(
+            Uri.parse(
+              'https://pheonixconstructions.com/mobile/wishlistRemove.php?user_id=$userId&product_id=$cleanProductId',
+            ),
+          );
+
+          final removeData = json.decode(removeResponse.body);
+          print("Force remove response: $removeData");
+
+          if (removeData['result'] == 'Success' ||
+              removeData['success'].toString() == '1' ||
+              removeData['status'].toString().toLowerCase() == 'success') {
+            setState(() {
+              isInWishlist = false;
+            });
+            showWishlistSnackBar(
+              'Removed from wishlist',
+              Icons.favorite_border,
+              Colors.brown,
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to remove from wishlist')),
+            );
+          }
+        } else if (isSuccess) {
+          // Normal toggle
           setState(() {
             isInWishlist = !isInWishlist;
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                isInWishlist ? 'Added to wishlist' : 'Removed from wishlist',
-              ),
-            ),
+          showWishlistSnackBar(
+            isInWishlist ? 'Added to wishlist' : 'Removed from wishlist',
+            isInWishlist ? Icons.favorite : Icons.favorite_border,
+            isInWishlist ? Colors.red : Colors.brown,
           );
         } else {
           ScaffoldMessenger.of(
@@ -262,15 +312,18 @@ class _DetailsPageState extends State<DetailsPage> {
         }
       }
     } catch (e) {
+      print("Error: $e");
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error updating wishlist')));
     }
+
     setState(() => isWishlistLoading = false);
   }
 
-  Future<void> addToCart() async {
-    if (userId == null || isAddingToCart) return;
+  Future<String> addToCart() async {
+    if (userId == null || isAddingToCart)
+      return 'User ID missing or already adding';
     setState(() => isAddingToCart = true);
     try {
       String cleanProductId = widget.productId.replaceAll('"', '');
@@ -279,14 +332,12 @@ class _DetailsPageState extends State<DetailsPage> {
       String totalPrice = unitPrice;
       String totalMrp = unitMrp;
 
-      // Build variants JSON
       Map<String, String> variants = {};
       selectedOptions.forEach((type, option) {
         variants[type.toLowerCase()] = option['variant_option_name'] ?? '';
       });
       String variantsJson = Uri.encodeComponent(json.encode(variants));
 
-      // Get additional product details
       String metalWeight = productDetails!['metal_weight']?.toString() ?? '0';
       String stoneWeight = productDetails!['stone_weight']?.toString() ?? '0';
       String makingPercent =
@@ -297,7 +348,6 @@ class _DetailsPageState extends State<DetailsPage> {
         productDetails!['purity_info']?.toString() ?? '22K Gold',
       );
 
-      // Build metal details JSON
       Map<String, dynamic> metalDetails = {
         'type': productDetails!['metal_type_name'] ?? 'gold',
         'purity': '${productDetails!['purity'] ?? '22'}K',
@@ -305,7 +355,6 @@ class _DetailsPageState extends State<DetailsPage> {
       };
       String metalDetailsJson = Uri.encodeComponent(json.encode(metalDetails));
 
-      // Build stone details JSON (if available)
       Map<String, dynamic> stoneDetails = {
         'type': 'diamond',
         'weight': double.tryParse(stoneWeight) ?? 0,
@@ -313,7 +362,6 @@ class _DetailsPageState extends State<DetailsPage> {
       };
       String stoneDetailsJson = Uri.encodeComponent(json.encode(stoneDetails));
 
-      // Calculate rates
       double makingRate =
           (double.tryParse(unitPrice) ?? 0) *
           (double.tryParse(makingPercent) ?? 0) /
@@ -353,31 +401,37 @@ class _DetailsPageState extends State<DetailsPage> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true) {
+          String cartId = data['cart_id']?.toString() ?? '';
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Added to cart successfully'),
               backgroundColor: Colors.green,
             ),
           );
+          return cartId;
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('API Error: ${data['message'] ?? 'Unknown error'}'),
-            ),
-          );
+          String errorMsg = 'API Error: ${data['message'] ?? 'Unknown error'}';
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(errorMsg)));
+          return errorMsg;
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('HTTP Error: ${response.statusCode}')),
-        );
+        String errorMsg = 'HTTP Error: ${response.statusCode}';
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(errorMsg)));
+        return errorMsg;
       }
     } catch (e) {
       print('Add to cart error: $e');
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      return 'Exception: $e';
+    } finally {
+      setState(() => isAddingToCart = false);
     }
-    setState(() => isAddingToCart = false);
   }
 
   Widget _buildPriceBreakdown() {
@@ -439,13 +493,9 @@ class _DetailsPageState extends State<DetailsPage> {
           ),
           SizedBox(height: 12),
 
-          _buildSummaryRow("Base Price", "₹${basePrice.toStringAsFixed(2)}"),
-          _buildSummaryRow(
-            "Discount",
-            "-₹${discountAmount.toStringAsFixed(2)}",
-          ),
-          Divider(),
+          // _buildSummaryRow("Base Price", "₹${basePrice.toStringAsFixed(2)}"),
 
+          // Divider(),
           _sectionTitle("Metal Details"),
           _buildDetailRow(
             '${productDetails!['purity'] ?? '22'}K ${productDetails!['metal_type_name'] ?? 'Gold'}',
@@ -480,6 +530,10 @@ class _DetailsPageState extends State<DetailsPage> {
           Divider(),
           _buildSummaryRow("Subtotal", "₹${subtotal.toStringAsFixed(2)}"),
           _buildSummaryRow("GST (3%)", "₹${gst.toStringAsFixed(2)}"),
+          _buildSummaryRow(
+            "Discount",
+            "-₹${discountAmount.toStringAsFixed(2)}",
+          ),
 
           Divider(thickness: 1.5),
           _buildSummaryRow(
@@ -514,60 +568,69 @@ class _DetailsPageState extends State<DetailsPage> {
     );
   }
 
-Widget _sectionTitle(String title) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8.0),
-    child: Text(
-      title,
-      style: TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: Colors.brown.shade600,
+  Widget _sectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: Colors.brown.shade600,
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
-Widget _buildDetailRow(String component, String rate, String weight, String value) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4.0),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(flex: 4, child: Text(component)),
-        Expanded(flex: 2, child: Text(rate, textAlign: TextAlign.right)),
-        Expanded(flex: 2, child: Text(weight, textAlign: TextAlign.right)),
-        Expanded(flex: 3, child: Text(value, textAlign: TextAlign.right)),
-      ],
-    ),
-  );
-}
+  Widget _buildDetailRow(
+    String component,
+    String rate,
+    String weight,
+    String value,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(flex: 4, child: Text(component)),
+          Expanded(flex: 2, child: Text(rate, textAlign: TextAlign.right)),
+          Expanded(flex: 2, child: Text(weight, textAlign: TextAlign.right)),
+          Expanded(flex: 3, child: Text(value, textAlign: TextAlign.right)),
+        ],
+      ),
+    );
+  }
 
-Widget _buildSummaryRow(String label, String value, {bool isBold = false, bool isHighlight = false}) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4.0),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
-            color: isHighlight ? Colors.brown : Colors.black,
+  Widget _buildSummaryRow(
+    String label,
+    String value, {
+    bool isBold = false,
+    bool isHighlight = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+              color: isHighlight ? Colors.brown : Colors.black,
+            ),
           ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
-            color: isHighlight ? Colors.brown.shade800 : Colors.black87,
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+              color: isHighlight ? Colors.brown.shade800 : Colors.black87,
+            ),
           ),
-        ),
-      ],
-    ),
-  );
-}
-
+        ],
+      ),
+    );
+  }
 
   Widget _buildPriceRow(
     String component,
@@ -967,38 +1030,58 @@ Widget _buildSummaryRow(String label, String value, {bool isBold = false, bool i
               backgroundColor: Colors.brown,
               padding: EdgeInsets.symmetric(vertical: 14),
             ),
-            onPressed: () {
-              if (userId == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Please login to proceed')),
-                );
-                return;
-              }
-              if (productDetails != null) {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder:
-                        (context) => OrderSummaryPage(
-                          productDetails: productDetails!,
-                          userId: userId!,
-                          address: Address(
-                            id: '',
-                            doorNo: '',
-                            streetName: '',
-                            area: '',
-                            city: '',
-                            district: '',
-                            pincode: '',
+            onPressed:
+                isAddingToCart
+                    ? null
+                    : () async {
+                      if (userId == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Please login to proceed')),
+                        );
+                        return;
+                      }
+
+                      if (productDetails != null) {
+                        final String? cartId = await addToCart();
+
+                        if (cartId != null) {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => OrderSummaryPage(
+                                    productDetails: productDetails!,
+                                    userId: userId!,
+                                    address: Address(
+                                      id: '',
+                                      firstName: '',
+                                      lastName: '',
+                                      contactNumber: '',
+                                      doorNo: '',
+                                      streetName: '',
+                                      area: '',
+                                      city: '',
+                                      district: '',
+                                      pincode: '',
+                                    ),
+                                    cartId:
+                                        cartId, //  Now passing valid cart ID
+                                  ),
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Failed to add to cart')),
+                          );
+                        }
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Product details not available'),
                           ),
-                        ),
-                  ),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Product details not available')),
-                );
-              }
-            },
+                        );
+                      }
+                    },
+
             child: Text(
               'Proceed to Buy',
               style: TextStyle(color: Colors.white),

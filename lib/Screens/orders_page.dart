@@ -55,11 +55,16 @@ class _OrdersPageState extends State<OrdersPage>
   }
 
   double _calculateTotalPrice() {
-    return cart.fold(0, (sum, item) {
-      double price = double.tryParse(item['unit_price'].toString()) ?? 0;
-      int qty = int.tryParse(item['quantity'].toString()) ?? 1;
-      return sum + (price * qty);
-    });
+    double total = 0.0;
+
+    for (var item in cart) {
+      final quantity = int.tryParse(item['quantity'].toString()) ?? 1;
+      final unitPrice = double.tryParse(item['unit_price'].toString()) ?? 0.0;
+
+      total += quantity * unitPrice;
+    }
+
+    return total;
   }
 
   void _goToCheckout() {
@@ -105,15 +110,13 @@ class _OrdersPageState extends State<OrdersPage>
       print('Delete response: ${response.statusCode} - ${response.body}');
 
       if (response.statusCode == 200) {
-        final responseBody = response.body.trim();
-        if (responseBody.contains('success') ||
-            responseBody.contains('Success') ||
-            responseBody == 'Success') {
+        final responseBody = response.body.trim().toLowerCase();
+        if (responseBody.contains('success')) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text('Item removed from cart')));
-          // Add delay and force refresh
-          await Future.delayed(Duration(milliseconds: 500));
+
+          // ✅ Refresh cart
           await fetchCart();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -143,16 +146,13 @@ class _OrdersPageState extends State<OrdersPage>
       print('Clear all response: ${response.statusCode} - ${response.body}');
 
       if (response.statusCode == 200) {
-        final responseBody = response.body.trim();
-        if (responseBody.contains('success') ||
-            responseBody.contains('Success') ||
-            responseBody == 'Success') {
-          setState(() {
-            cart.clear();
-          });
+        final responseBody = response.body.trim().toLowerCase();
+        if (responseBody.contains('success')) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('All items removed from cart')),
           );
+
+          // ✅ Refresh cart
           await fetchCart();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -265,16 +265,21 @@ class _OrdersPageState extends State<OrdersPage>
                   orderList
                       .map<Map<String, dynamic>>(
                         (order) => {
-                          "order_id": order['order_id'].toString(),
-                          "productName": "Order #${order['order_id']}",
+                          "order_id": order['order_id']?.toString() ?? '',
+                          "quantity":
+                              order['quantity']?.toString() ??
+                              '1', // Safe conversion
+                          "product_name":
+                              order['product_details']?['product_name'] ?? '',
                           "productImage":
-                              "assets/order_placeholder.jpg", // Placeholder until actual image
-                          "price": "₹${order['total_price']}",
-                          "status":
-                              "Processing", // You can replace this with actual status if available
-                          "date": order['created_at'],
-                          "details":
-                              order, // full order map if needed for detail screen
+                              order['product_details']?['image'] ?? '',
+                          "price":
+                              order['unit_price']?.toString() ??
+                              '0.00', // Safe conversion
+                          "status": "Processing",
+                          "date": order['created_at'] ?? '',
+                          "product_details": order['product_details'],
+                          "details": order,
                         },
                       )
                       .toList();
@@ -463,16 +468,24 @@ class _OrdersPageState extends State<OrdersPage>
                             ),
                             SizedBox(height: 6),
                             Text(
-                              "₹ ${order['total_price']}",
+                              "Quantity: ${order['quantity']}",
                               style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.brown,
+                                fontSize: 14,
+                                color: Colors.grey[700],
                               ),
                             ),
+                            // SizedBox(height: 6),
+                            // Text(
+                            //   "₹ ${order['unit_price']}",
+                            //   style: TextStyle(
+                            //     fontSize: 15,
+                            //     fontWeight: FontWeight.bold,
+                            //     color: Colors.brown,
+                            //   ),
+                            // ),
                             SizedBox(height: 4),
                             Text(
-                              order['created_at'] ?? '',
+                              order['status'] ?? '',
                               style: TextStyle(
                                 fontSize: 13,
                                 color: Colors.grey,

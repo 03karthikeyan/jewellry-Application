@@ -206,29 +206,29 @@ class _ProductListPageState extends State<ProductListPage> {
                                       // }
                                     },
 
-                                    // child: Container(
-                                    //   decoration: BoxDecoration(
-                                    //     color: Colors.white,
-                                    //     shape: BoxShape.circle,
-                                    //     boxShadow: [
-                                    //       BoxShadow(
-                                    //         color: Colors.black12,
-                                    //         blurRadius: 4,
-                                    //       ),
-                                    //     ],
-                                    //   ),
-                                    //   padding: const EdgeInsets.all(6),
-                                    //   child: Icon(
-                                    //     isWishlisted
-                                    //         ? Icons.favorite
-                                    //         : Icons.favorite_border,
-                                    //     size: 18,
-                                    //     color:
-                                    //         isWishlisted
-                                    //             ? Colors.red
-                                    //             : Colors.brown,
-                                    //   ),
-                                    // ),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black12,
+                                            blurRadius: 4,
+                                          ),
+                                        ],
+                                      ),
+                                      padding: const EdgeInsets.all(6),
+                                      child: Icon(
+                                        isWishlisted
+                                            ? Icons.favorite
+                                            : Icons.favorite_border,
+                                        size: 18,
+                                        color:
+                                            isWishlisted
+                                                ? Colors.red
+                                                : Colors.brown,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],

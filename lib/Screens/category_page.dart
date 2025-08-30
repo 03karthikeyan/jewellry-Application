@@ -256,8 +256,17 @@ class _CustomUploadFormState extends State<CustomUploadForm> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Customize Request"),
+        title: Text(
+          "Customize Request",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.brown,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pop(context); // Navigate back
+          },
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -312,7 +321,7 @@ class _CustomUploadFormState extends State<CustomUploadForm> {
                     Navigator.pop(context);
                   }
                 },
-                child: Text('Submit'),
+                child: Text('Submit', style: TextStyle(color: Colors.white)),
               ),
             ],
           ),

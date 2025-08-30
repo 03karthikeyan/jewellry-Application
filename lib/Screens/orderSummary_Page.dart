@@ -8,12 +8,14 @@ class OrderSummaryPage extends StatefulWidget {
   final Map<String, dynamic> productDetails;
   final String userId;
   final Address address;
+  final String cartId;
 
   const OrderSummaryPage({
     Key? key,
     required this.productDetails,
     required this.userId,
     required this.address,
+    required this.cartId,
   }) : super(key: key);
 
   @override
@@ -116,7 +118,11 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       context: context,
       builder:
           (context) => AddressFormDialog(
+            isEditMode: true,
             initialData: {
+              'first_name': address.firstName,
+              'last_name': address.lastName,
+              'contact_number': address.contactNumber,
               'doorNo': address.doorNo,
               'streetName': address.streetName,
               'area': address.area,
@@ -214,9 +220,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     setState(() => isPlacingOrder = true);
 
     final String userId = widget.userId;
-    final String grandTotal = widget.productDetails['price']?.toString() ?? '0';
+    final String grandTotal =
+        widget.productDetails['final_price']?.toString() ?? '0';
     final String addressId = selectedAddress?.id?.toString() ?? '';
-    final String cartId = '379'; // Update dynamically if needed
+    final String cartId = widget.cartId;
 
     final url =
         'https://pheonixconstructions.com/mobile/placeOrder.php?user_id=${widget.userId}'
@@ -310,6 +317,58 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                 onStepCancel: () {
                   if (currentStep > 0) setState(() => currentStep -= 1);
                 },
+                controlsBuilder: (context, details) {
+                  if (currentStep == 2)
+                    return SizedBox(); // Hide controls in Payment step
+
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: details.onStepContinue,
+                        icon: Icon(Icons.arrow_forward),
+                        label: Text(
+                          'Continue',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.brown, // Primary color
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          elevation: 4,
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      OutlinedButton.icon(
+                        onPressed: details.onStepCancel,
+                        icon: Icon(Icons.close, color: Colors.brown),
+                        label: Text(
+                          'Cancel',
+                          style: TextStyle(fontSize: 16, color: Colors.brown),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.brown),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
                 steps: [
                   Step(
                     title: Text('Address'),
@@ -345,24 +404,67 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         else
           ...addresses.map(
             (address) => Card(
-              margin: EdgeInsets.symmetric(vertical: 6),
-              child: ListTile(
-                title: Text(address.getFullAddress()),
-                leading: Radio<Address>(
-                  value: address,
-                  groupValue: selectedAddress,
-                  onChanged: (value) => setState(() => selectedAddress = value),
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              margin: EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    IconButton(
-                      icon: Icon(Icons.edit, color: Colors.blue),
-                      onPressed: () => _editAddress(address),
+                    Radio<Address>(
+                      value: address,
+                      groupValue: selectedAddress,
+                      onChanged:
+                          (value) => setState(() => selectedAddress = value),
+                      activeColor: Colors.brown,
                     ),
-                    IconButton(
-                      icon: Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _confirmDeleteAddress(address),
+                    SizedBox(width: 4),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Optional: Name or type
+                          Text(
+                            address.firstName ?? 'Delivery Address',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            address.getFullAddress(),
+                            style: TextStyle(fontSize: 14, height: 1.4),
+                          ),
+                          SizedBox(height: 6),
+                          Text(
+                            'Phone: ${address.contactNumber ?? ''}',
+                            style: TextStyle(
+                              color: Colors.grey[700],
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Column(
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () => _editAddress(address),
+                          tooltip: 'Edit Address',
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _confirmDeleteAddress(address),
+                          tooltip: 'Delete Address',
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -372,8 +474,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         SizedBox(height: 16),
         ElevatedButton.icon(
           onPressed: _showAddressForm,
-          icon: Icon(Icons.add),
-          label: Text('Add New Address'),
+          icon: Icon(Icons.add, color: Colors.white),
+          label: Text('Add New Address', style: TextStyle(color: Colors.white)),
           style: ElevatedButton.styleFrom(backgroundColor: Colors.brown),
         ),
       ],
@@ -390,7 +492,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         ),
         SizedBox(height: 10),
         Text('Product: ${widget.productDetails['pname']}'),
-        Text('Price: ₹${widget.productDetails['price']}'),
+        Text('Price: ₹${widget.productDetails['final_price']}'),
         SizedBox(height: 20),
         Text(
           'Delivery Address',
@@ -408,7 +510,11 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Select Payment Method'),
+        Text(
+          'Select Payment Method',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        SizedBox(height: 10),
         ListTile(
           title: Text('UPI'),
           leading: Radio(
@@ -425,26 +531,117 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
             onChanged: (v) => setState(() => selectedPayment = v!),
           ),
         ),
+        ListTile(
+          title: Text('Bank Transfer / QR'),
+          leading: Radio(
+            value: 'BANK',
+            groupValue: selectedPayment,
+            onChanged: (v) => setState(() => selectedPayment = v!),
+          ),
+        ),
+
+        // Show extra info only if BANK is selected
+        if (selectedPayment == 'BANK') ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Card(
+              elevation: 3,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Bank Details:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.brown,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text('Bank Name: HDFC Bank'),
+                    Text('Account No: 123456789012'),
+                    Text('IFSC Code: HDFC0001234'),
+                    Text('Account Holder: Sri Chandra Jewel Crafts'),
+                    SizedBox(height: 16),
+                    Text(
+                      'Scan & Pay:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.brown,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Center(
+                      child: Container(
+                        width: 150,
+                        height: 150,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.brown.shade200),
+                          borderRadius: BorderRadius.circular(8),
+                          color: Colors.grey[100],
+                        ),
+                        child: Image.asset(
+                          'assets/qr_code.png', 
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: 16),
+        ],
+
         SizedBox(height: 20),
         Text(
-          'Amount Payable: ₹${widget.productDetails['price']}',
+          'Amount Payable: ₹${widget.productDetails['final_price']}',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 20),
         ElevatedButton(
           onPressed: isPlacingOrder ? null : _placeOrder,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green,
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 4,
+            shadowColor: Colors.greenAccent.withOpacity(0.4),
+          ),
           child:
               isPlacingOrder
                   ? SizedBox(
-                    height: 20,
-                    width: 20,
+                    height: 24,
+                    width: 24,
                     child: CircularProgressIndicator(
-                      strokeWidth: 2,
+                      strokeWidth: 2.5,
                       color: Colors.white,
                     ),
                   )
-                  : Text('Place Order'),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                  : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.shopping_cart_checkout, color: Colors.white),
+                      SizedBox(width: 10),
+                      Text(
+                        'Place Order',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
         ),
       ],
     );
@@ -453,8 +650,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
 
 class AddressFormDialog extends StatefulWidget {
   final Map<String, String>? initialData;
+  final bool isEditMode;
 
-  AddressFormDialog({this.initialData});
+  const AddressFormDialog({Key? key, this.initialData, this.isEditMode = false})
+    : super(key: key);
 
   @override
   _AddressFormDialogState createState() => _AddressFormDialogState();
@@ -507,59 +706,40 @@ class _AddressFormDialogState extends State<AddressFormDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Add New Address'),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Row(
+        children: [
+          Icon(
+            widget.isEditMode
+                ? Icons.edit_location_alt
+                : Icons.add_location_alt,
+            color: Colors.brown,
+          ),
+          SizedBox(width: 8),
+          Text(widget.isEditMode ? 'Edit Address' : 'Add New Address'),
+        ],
+      ),
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              TextFormField(
-                controller: _firstnameController,
-                decoration: InputDecoration(labelText: 'First Name'),
-                validator: (value) => value!.isEmpty ? 'Required' : null,
+              _buildInput(_firstnameController, 'First Name'),
+              _buildInput(_lastnameController, 'Last Name'),
+              _buildInput(
+                _contactnumberController,
+                'Contact Number',
+                keyboardType: TextInputType.phone,
               ),
-              TextFormField(
-                controller: _lastnameController,
-                decoration: InputDecoration(labelText: 'Last Name'),
-                validator: (value) => value!.isEmpty ? 'Required' : null,
-              ),
-              TextFormField(
-                controller: _contactnumberController,
-                decoration: InputDecoration(labelText: 'Contact Number'),
+              _buildInput(_doorNoController, 'Door/Flat No.'),
+              _buildInput(_streetNameController, 'Street Name'),
+              _buildInput(_areaController, 'Area/Locality'),
+              _buildInput(_cityController, 'City'),
+              _buildInput(_districtController, 'District'),
+              _buildInput(
+                _pincodeController,
+                'Pincode',
                 keyboardType: TextInputType.number,
-                validator: (value) => value!.isEmpty ? 'Required' : null,
-              ),
-              TextFormField(
-                controller: _doorNoController,
-                decoration: InputDecoration(labelText: 'Door/Flat No.'),
-                validator: (value) => value!.isEmpty ? 'Required' : null,
-              ),
-              TextFormField(
-                controller: _streetNameController,
-                decoration: InputDecoration(labelText: 'Street Name'),
-                validator: (value) => value!.isEmpty ? 'Required' : null,
-              ),
-              TextFormField(
-                controller: _areaController,
-                decoration: InputDecoration(labelText: 'Area/Locality'),
-                validator: (value) => value!.isEmpty ? 'Required' : null,
-              ),
-              TextFormField(
-                controller: _cityController,
-                decoration: InputDecoration(labelText: 'City'),
-                validator: (value) => value!.isEmpty ? 'Required' : null,
-              ),
-              TextFormField(
-                controller: _districtController,
-                decoration: InputDecoration(labelText: 'District'),
-                validator: (value) => value!.isEmpty ? 'Required' : null,
-              ),
-              TextFormField(
-                controller: _pincodeController,
-                decoration: InputDecoration(labelText: 'Pincode'),
-                keyboardType: TextInputType.number,
-                validator: (value) => value!.isEmpty ? 'Required' : null,
               ),
             ],
           ),
@@ -570,10 +750,14 @@ class _AddressFormDialogState extends State<AddressFormDialog> {
           onPressed: () => Navigator.pop(context),
           child: Text('Cancel'),
         ),
-        TextButton(
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.brown),
           onPressed: () {
             if (_formKey.currentState!.validate()) {
               Navigator.pop(context, {
+                'first_name': _firstnameController.text.trim(),
+                'last_name': _lastnameController.text.trim(),
+                'contact_number': _contactnumberController.text.trim(),
                 'doorNo': _doorNoController.text.trim(),
                 'streetName': _streetNameController.text.trim(),
                 'area': _areaController.text.trim(),
@@ -583,9 +767,33 @@ class _AddressFormDialogState extends State<AddressFormDialog> {
               });
             }
           },
-          child: Text('Save'),
+          child: Text(
+            widget.isEditMode ? 'Update' : 'Save',
+            style: TextStyle(color: Colors.white),
+          ),
         ),
       ],
     );
   }
+}
+
+Widget _buildInput(
+  TextEditingController controller,
+  String labelText, {
+  TextInputType? keyboardType,
+}) {
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 10),
+    child: TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: labelText,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      ),
+      validator:
+          (value) => value == null || value.trim().isEmpty ? 'Required' : null,
+    ),
+  );
 }

@@ -37,8 +37,33 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+   applicationVariants.all {
+        outputs.all {
+            if (this is com.android.build.gradle.internal.api.BaseVariantOutputImpl) {
+                outputFileName = "Jewellery.apk"
+            }
+        }
+    }
 }
+
 
 flutter {
     source = "../.."
+}
+
+
+tasks.whenTaskAdded {
+    if (name == "packageRelease") {
+        doLast {
+            val apkDir = file("$buildDir/outputs/flutter-apk")
+            val oldApk = file("$apkDir/app-release.apk")
+            val newApk = file("$apkDir/Jewellery.apk")
+
+            if (oldApk.exists()) {
+                oldApk.renameTo(newApk)
+                println("APK renamed to: ${newApk.absolutePath}")
+            }
+        }
+    }
 }
