@@ -42,11 +42,6 @@ class _HomePageState extends State<HomePage> {
   List<String> _bannerImages = [];
   Timer? _timer;
 
-  // final List<String> _bannerImages = [
-  //   'assets/banner1.webp',
-  //   'assets/banner2.webp',
-  //   'assets/banner3.webp',
-  // ];
 
   late VideoPlayerController _videoController;
 

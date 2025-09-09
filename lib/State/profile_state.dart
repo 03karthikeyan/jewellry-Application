@@ -17,3 +17,4 @@ class ProfileError extends ProfileState {
 
   ProfileError(this.message);
 }
+

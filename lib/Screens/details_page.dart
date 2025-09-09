@@ -108,39 +108,8 @@ class _DetailsPageState extends State<DetailsPage> {
 
   double _calculateFinalPrice() {
     if (productDetails == null) return 0;
-
-    double metalWeight =
-        double.tryParse(productDetails!['metal_weight']?.toString() ?? '0') ??
-        0;
-    double stoneWeight =
-        double.tryParse(productDetails!['stone_weight']?.toString() ?? '0') ??
-        0;
-    double makingPercent =
-        double.tryParse(productDetails!['making_charges']?.toString() ?? '0') ??
-        0;
-    double wastagePercent =
-        double.tryParse(
-          productDetails!['wastage_percent']?.toString() ?? '0',
-        ) ??
-        0;
-    double metalRate =
-        double.tryParse(productDetails!['mprice']?.toString() ?? '0') ?? 0;
-    double discountAmount =
-        double.tryParse(productDetails!['discount_price']?.toString() ?? '0') ??
-        0;
-
-    double metalValue = metalRate * metalWeight;
-    double wastageCharges = metalValue * wastagePercent / 100;
-    double makingCharges = metalValue * makingPercent / 100;
-    double stoneRate = stoneWeight > 0 ? 50000 : 0;
-    double stoneValue = stoneRate * stoneWeight;
-
-    double subtotal = metalValue + wastageCharges + makingCharges + stoneValue;
-    double gst = subtotal * 0.03;
-    double totalBeforeDiscount = subtotal + gst;
-    double finalPrice = totalBeforeDiscount - discountAmount;
-
-    return finalPrice;
+    // Use API's final_price directly
+    return double.tryParse(productDetails!['final_price']?.toString() ?? '0') ?? 0;
   }
 
   Widget _variantSelectors() {
@@ -199,52 +168,36 @@ class _DetailsPageState extends State<DetailsPage> {
     );
   }
 
-  void showWishlistSnackBar(String message, IconData icon, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: Colors.white,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        content: Row(
-          children: [
-            Icon(icon, color: color),
-            SizedBox(width: 10),
-            Expanded(
-              child: Text(message, style: TextStyle(color: Colors.black)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Future<void> checkWishlistStatus() async {
-    final response = await http.get(
-      Uri.parse(
-        'https://pheonixconstructions.com/mobile/fetchWishlist.php?user_id=$userId',
-      ),
-    );
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      List wishlistItems = data['wishlist'] ?? [];
-      bool found = wishlistItems.any(
-        (item) => item['product_id'].toString() == widget.productId.toString(),
-      );
-      setState(() {
-        isInWishlist = found;
-      });
-    }
+    if (userId == null) return;
+    setState(() => isWishlistLoading = true);
+    try {
+      String cleanProductId = widget.productId.replaceAll('"', '');
+      final url =
+          'https://pheonixconstructions.com/mobile/checkWishlist.php?user_id=$userId&product_id=$cleanProductId';
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        bool isInList = false;
+        if (data.containsKey('result') && data['result'] == 'Success')
+          isInList = true;
+        if (data.containsKey('exists') && data['exists'] == true)
+          isInList = true;
+        if (data.containsKey('status') && data['status'] == 'found')
+          isInList = true;
+        setState(() {
+          isInWishlist = isInList;
+        });
+      }
+    } catch (e) {}
+    setState(() => isWishlistLoading = false);
   }
 
   Future<void> toggleWishlist() async {
     if (userId == null || isWishlistLoading) return;
     setState(() => isWishlistLoading = true);
-
     try {
-      String cleanProductId = widget.productId.replaceAll('"', '').trim();
-
-      // Attempt toggle
+      String cleanProductId = widget.productId.replaceAll('"', '');
       final url =
           isInWishlist
               ? 'https://pheonixconstructions.com/mobile/wishlistRemove.php?user_id=$userId&product_id=$cleanProductId'
@@ -253,57 +206,23 @@ class _DetailsPageState extends State<DetailsPage> {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print("Wishlist response: $data");
-
         bool isSuccess = false;
-
-        // ✅ Check for normal success
         if (data.containsKey('result') && data['result'] == 'Success')
           isSuccess = true;
-        if (data.containsKey('success') && data['success'].toString() == '1')
+        if (data.containsKey('success') && data['success'] == 1)
           isSuccess = true;
-        if (data.containsKey('status') &&
-            data['status'].toString().toLowerCase() == 'success')
+        if (data.containsKey('status') && data['status'] == 'success')
           isSuccess = true;
-
-        // ✅ SPECIAL CASE: Already in wishlist → remove it
-        if (data['result'] == 'failed' &&
-            data['text'] == 'Product is already in wishlist!') {
-          // Force remove it
-          final removeResponse = await http.get(
-            Uri.parse(
-              'https://pheonixconstructions.com/mobile/wishlistRemove.php?user_id=$userId&product_id=$cleanProductId',
-            ),
-          );
-
-          final removeData = json.decode(removeResponse.body);
-          print("Force remove response: $removeData");
-
-          if (removeData['result'] == 'Success' ||
-              removeData['success'].toString() == '1' ||
-              removeData['status'].toString().toLowerCase() == 'success') {
-            setState(() {
-              isInWishlist = false;
-            });
-            showWishlistSnackBar(
-              'Removed from wishlist',
-              Icons.favorite_border,
-              Colors.brown,
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Failed to remove from wishlist')),
-            );
-          }
-        } else if (isSuccess) {
-          // Normal toggle
+        if (isSuccess) {
           setState(() {
             isInWishlist = !isInWishlist;
           });
-          showWishlistSnackBar(
-            isInWishlist ? 'Added to wishlist' : 'Removed from wishlist',
-            isInWishlist ? Icons.favorite : Icons.favorite_border,
-            isInWishlist ? Colors.red : Colors.brown,
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                isInWishlist ? 'Added to wishlist' : 'Removed from wishlist',
+              ),
+            ),
           );
         } else {
           ScaffoldMessenger.of(
@@ -312,165 +231,209 @@ class _DetailsPageState extends State<DetailsPage> {
         }
       }
     } catch (e) {
-      print("Error: $e");
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error updating wishlist')));
     }
-
     setState(() => isWishlistLoading = false);
   }
 
-  Future<String> addToCart() async {
-    if (userId == null || isAddingToCart)
-      return 'User ID missing or already adding';
-    setState(() => isAddingToCart = true);
-    try {
-      String cleanProductId = widget.productId.replaceAll('"', '');
-      String unitPrice = _calculateFinalPrice().toStringAsFixed(2);
-      String unitMrp = productDetails!['price']?.toString() ?? unitPrice;
-      String totalPrice = unitPrice;
-      String totalMrp = unitMrp;
+  Future<String?> addToCart() async {
+  if (userId == null || isAddingToCart) return null;
+  setState(() => isAddingToCart = true);
+  try {
+    String cleanProductId = widget.productId.replaceAll('"', '');
+    String unitPrice = _calculateFinalPrice().toStringAsFixed(2);
+    String unitMrp = productDetails!['price']?.toString() ?? unitPrice;
+    String totalPrice = unitPrice;
+    String totalMrp = unitMrp;
 
-      Map<String, String> variants = {};
-      selectedOptions.forEach((type, option) {
-        variants[type.toLowerCase()] = option['variant_option_name'] ?? '';
-      });
-      String variantsJson = Uri.encodeComponent(json.encode(variants));
+    Map<String, String> variants = {};
+    selectedOptions.forEach((type, option) {
+      variants[type.toLowerCase()] = option['variant_option_name'] ?? '';
+    });
+    String variantsJson = Uri.encodeComponent(json.encode(variants));
 
-      String metalWeight = productDetails!['metal_weight']?.toString() ?? '0';
-      String stoneWeight = productDetails!['stone_weight']?.toString() ?? '0';
-      String makingPercent =
-          productDetails!['making_charges']?.toString() ?? '0';
-      String wastagePercent =
-          productDetails!['wastage_percent']?.toString() ?? '0';
-      String purityInfo = Uri.encodeComponent(
-        productDetails!['purity_info']?.toString() ?? '22K Gold',
-      );
+    String metalWeight = productDetails!['metal_weight']?.toString() ?? '0';
+    String stoneWeight = productDetails!['stone_weight']?.toString() ?? '0';
+    String makingPercent = productDetails!['making_charges']?.toString() ?? '0';
+    String wastagePercent = productDetails!['wastage_percent']?.toString() ?? '0';
+    String purityInfo = Uri.encodeComponent(
+      productDetails!['purity_info']?.toString() ?? '22K Gold',
+    );
 
-      Map<String, dynamic> metalDetails = {
-        'type': productDetails!['metal_type_name'] ?? 'gold',
-        'purity': '${productDetails!['purity'] ?? '22'}K',
-        'weight': double.tryParse(metalWeight) ?? 0,
-      };
-      String metalDetailsJson = Uri.encodeComponent(json.encode(metalDetails));
+    Map<String, dynamic> metalDetails = {
+      'type': productDetails!['metal_type_name'] ?? 'gold',
+      'purity': '${productDetails!['purity'] ?? '22'}K',
+      'weight': double.tryParse(metalWeight) ?? 0,
+    };
+    String metalDetailsJson = Uri.encodeComponent(json.encode(metalDetails));
 
-      Map<String, dynamic> stoneDetails = {
-        'type': 'diamond',
-        'weight': double.tryParse(stoneWeight) ?? 0,
-        'clarity': 'VS1',
-      };
-      String stoneDetailsJson = Uri.encodeComponent(json.encode(stoneDetails));
+    Map<String, dynamic> stoneDetails = {
+      'type': 'diamond',
+      'weight': double.tryParse(stoneWeight) ?? 0,
+      'clarity': 'VS1',
+    };
+    String stoneDetailsJson = Uri.encodeComponent(json.encode(stoneDetails));
 
-      double makingRate =
-          (double.tryParse(unitPrice) ?? 0) *
-          (double.tryParse(makingPercent) ?? 0) /
-          100;
-      double wastageRate =
-          (double.tryParse(unitPrice) ?? 0) *
-          (double.tryParse(wastagePercent) ?? 0) /
-          100;
-      double subtotal =
-          (double.tryParse(unitPrice) ?? 0) - makingRate - wastageRate;
+    double makingRate =
+        (double.tryParse(unitPrice) ?? 0) * (double.tryParse(makingPercent) ?? 0) / 100;
+    double wastageRate =
+        (double.tryParse(unitPrice) ?? 0) * (double.tryParse(wastagePercent) ?? 0) / 100;
+    double subtotal =
+        (double.tryParse(unitPrice) ?? 0) - makingRate - wastageRate;
 
-      final url =
-          'https://pheonixconstructions.com/mobile/addToCart.php'
-          '?user_id=$userId'
-          '&product_id=$cleanProductId'
-          '&quantity=1'
-          '&unit_price=$unitPrice'
-          '&total_price=$totalPrice'
-          '&unit_mrp=$unitMrp'
-          '&total_mrp=$totalMrp'
-          '&variants=$variantsJson'
-          '&total_metal_weight=$metalWeight'
-          '&total_stone_weight=$stoneWeight'
-          '&metal_details=$metalDetailsJson'
-          '&stone_details=$stoneDetailsJson'
-          '&making_percent=$makingPercent'
-          '&wastage_percent=$wastagePercent'
-          '&making_rate=${makingRate.toStringAsFixed(2)}'
-          '&wastage_rate=${wastageRate.toStringAsFixed(2)}'
-          '&purity_info=$purityInfo'
-          '&subtotal=${subtotal.toStringAsFixed(2)}';
+    final url =
+        'https://pheonixconstructions.com/mobile/addToCart.php'
+        '?user_id=$userId'
+        '&product_id=$cleanProductId'
+        '&quantity=1'
+        '&unit_price=$unitPrice'
+        '&total_price=$totalPrice'
+        '&unit_mrp=$unitMrp'
+        '&total_mrp=$totalMrp'
+        '&variants=$variantsJson'
+        '&total_metal_weight=$metalWeight'
+        '&total_stone_weight=$stoneWeight'
+        '&metal_details=$metalDetailsJson'
+        '&stone_details=$stoneDetailsJson'
+        '&making_percent=$makingPercent'
+        '&wastage_percent=$wastagePercent'
+        '&making_rate=${makingRate.toStringAsFixed(2)}'
+        '&wastage_rate=${wastageRate.toStringAsFixed(2)}'
+        '&purity_info=$purityInfo'
+        '&subtotal=${subtotal.toStringAsFixed(2)}';
 
-      print('Add to cart URL: $url');
-      final response = await http.get(Uri.parse(url));
-      print('Add to cart response: ${response.statusCode} - ${response.body}');
+    final response = await http.get(Uri.parse(url));
+    print('Add to cart response: ${response.statusCode} - ${response.body}');
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['success'] == true) {
-          String cartId = data['cart_id']?.toString() ?? '';
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Added to cart successfully'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          return cartId;
-        } else {
-          String errorMsg = 'API Error: ${data['message'] ?? 'Unknown error'}';
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(errorMsg)));
-          return errorMsg;
-        }
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['success'] == true) {
+        final String cartId = data['cart_id']?.toString() ?? "";
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Added to cart successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        return cartId; // ✅ return cartId here
       } else {
-        String errorMsg = 'HTTP Error: ${response.statusCode}';
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(errorMsg)));
-        return errorMsg;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('API Error: ${data['message'] ?? 'Unknown error'}'),
+          ),
+        );
       }
-    } catch (e) {
-      print('Add to cart error: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
-      return 'Exception: $e';
-    } finally {
-      setState(() => isAddingToCart = false);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('HTTP Error: ${response.statusCode}')),
+      );
     }
+  } catch (e) {
+    print('Add to cart error: $e');
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Error: $e')));
   }
+  setState(() => isAddingToCart = false);
+  return null; // return null if failed
+}
+
 
   Widget _buildPriceBreakdown() {
     if (productDetails == null) return SizedBox();
 
-    // Extract & calculate values (same as before)
-    double basePrice =
-        double.tryParse(productDetails!['price']?.toString() ?? '0') ?? 0;
-    double discountAmount =
-        double.tryParse(productDetails!['discount_price']?.toString() ?? '0') ??
-        0;
-    double metalWeight =
-        double.tryParse(productDetails!['metal_weight']?.toString() ?? '0') ??
-        0;
-    double stoneWeight =
-        double.tryParse(productDetails!['stone_weight']?.toString() ?? '0') ??
-        0;
-    double makingPercent =
-        double.tryParse(productDetails!['making_charges']?.toString() ?? '0') ??
-        0;
-    double wastagePercent =
-        double.tryParse(
-          productDetails!['wastage_percent']?.toString() ?? '0',
-        ) ??
-        0;
-    double metalRate =
-        double.tryParse(productDetails!['mprice']?.toString() ?? '0') ?? 0;
+    // Parse metal_details and stone_details from API
+    List<dynamic> metalDetails = [];
+    List<dynamic> stoneDetails = [];
+    try {
+      if (productDetails!['metal_details'] != null &&
+          productDetails!['metal_details'].toString().isNotEmpty &&
+          productDetails!['metal_details'].toString() != "[]") {
+        metalDetails = json.decode(productDetails!['metal_details']);
+      }
+      if (productDetails!['stone_details'] != null &&
+          productDetails!['stone_details'].toString().isNotEmpty &&
+          productDetails!['stone_details'].toString() != "[]") {
+        stoneDetails = json.decode(productDetails!['stone_details']);
+      }
+    } catch (e) {}
 
-    double metalValue = metalRate * metalWeight;
-    double wastageCharges = metalValue * wastagePercent / 100;
-    double makingCharges = metalValue * makingPercent / 100;
-    double stoneRate = stoneWeight > 0 ? 50000 : 0;
-    double stoneValue = stoneRate * stoneWeight;
+    // Fallback for old API: use single metal if metal_details is empty
+    if (metalDetails.isEmpty && productDetails!['metal_type_name'] != null) {
+      String metalType = '${productDetails!['purity'] ?? '22'}K ${productDetails!['metal_type_name'] ?? 'Gold'}';
+      if (productDetails!['variant_option_name'] != null) {
+        metalType += ' ${productDetails!['variant_option_name']}';
+      }
+      metalDetails = [
+        {
+          'type': metalType,
+          'rate': double.tryParse(productDetails!['mprice']?.toString() ?? '0') ?? 0,
+          'weight': double.tryParse(productDetails!['metal_weight']?.toString() ?? '0') ?? 0,
+        }
+      ];
+    }
 
-    double subtotal = metalValue + wastageCharges + makingCharges + stoneValue;
+    // Fallback for old API: use stones if stone_details is empty
+    if (stoneDetails.isEmpty && productDetails!['stones'] != null) {
+      var stones = productDetails!['stones'];
+      if (stones is String && stones.isNotEmpty) {
+        try {
+          stones = json.decode(stones);
+        } catch (e) {
+          stones = [];
+        }
+      }
+      Map<String, double> stoneRates = {
+        "Diamond 1 GRAM(1.0CARAT=0.200 MGM)": 400000,
+        "CORAL 1 GRAM(1.00CARAT=0.200 MGM)": 3000,
+        "Ruby 1 Gram(1.00 CARAT=0.200MGM)": 2800,
+        "EAMERALD 1 GRAM(1.00CARAT=0.200 MGM)": 2500,
+      };
+      if (stones is List) {
+        stoneDetails = stones.map((s) => {
+          'type': s['name'] ?? 'Unknown Stone',
+          'rate': stoneRates[s['name']] ?? 1000,
+          'weight': (s['weight'] is String)
+              ? double.tryParse(s['weight']) ?? 0
+              : (s['weight'] ?? 0).toDouble(),
+        }).toList();
+      }
+    }
+
+    // Build rows for DataTable
+    List<DataRow> allRows = [];
+    for (var m in metalDetails) {
+      allRows.add(DataRow(cells: [
+        DataCell(Text(m['type']?.toString() ?? '', style: TextStyle(fontSize: 13))),
+        DataCell(Text('₹${(m['rate'] ?? 0).toStringAsFixed(0)}', textAlign: TextAlign.right)),
+        DataCell(Text('${(m['weight'] ?? 0).toStringAsFixed(2)} x 1', textAlign: TextAlign.right)),
+        DataCell(Text('₹${((m['rate'] ?? 0) * (m['weight'] ?? 0)).toStringAsFixed(2)}', textAlign: TextAlign.right)),
+        DataCell(Text('₹${((m['rate'] ?? 0) * (m['weight'] ?? 0)).toStringAsFixed(2)}', textAlign: TextAlign.right)),
+      ]));
+    }
+    for (var s in stoneDetails) {
+      allRows.add(DataRow(cells: [
+        DataCell(Text(s['type']?.toString() ?? '', style: TextStyle(fontSize: 13))),
+        DataCell(Text('₹${(s['rate'] ?? 0).toStringAsFixed(0)}', textAlign: TextAlign.right)),
+        DataCell(Text('${(s['weight'] ?? 0).toStringAsFixed(2)} x 1', textAlign: TextAlign.right)),
+        DataCell(Text('₹${((s['rate'] ?? 0) * (s['weight'] ?? 0)).toStringAsFixed(2)}', textAlign: TextAlign.right)),
+        DataCell(Text('₹${((s['rate'] ?? 0) * (s['weight'] ?? 0)).toStringAsFixed(2)}', textAlign: TextAlign.right)),
+      ]));
+    }
+
+    // Totals & charges
+    double totalMetalValue = metalDetails.fold<double>(0, (sum, m) => sum + ((m['rate'] ?? 0) * (m['weight'] ?? 0)));
+    double totalStoneValue = stoneDetails.fold<double>(0, (sum, s) => sum + ((s['rate'] ?? 0) * (s['weight'] ?? 0)));
+    double makingPercent = double.tryParse(productDetails!['making_charges']?.toString() ?? '0') ?? 0;
+    double wastagePercent = double.tryParse(productDetails!['wastage_percent']?.toString() ?? '0') ?? 0;
+    double makingCharges = (totalMetalValue + totalStoneValue) * makingPercent / 100;
+    double wastageCharges = (totalMetalValue + totalStoneValue) * wastagePercent / 100;
+    double subtotal = totalMetalValue + totalStoneValue + makingCharges + wastageCharges;
     double gst = subtotal * 0.03;
-    double totalBeforeDiscount = subtotal + gst;
-    double finalPrice = totalBeforeDiscount - discountAmount;
-    double grandTotal = finalPrice;
+    double discount = double.tryParse(productDetails!['discount_price']?.toString() ?? '0') ?? 0;
+    double grandTotal = subtotal + gst - discount;
 
     return Container(
       margin: EdgeInsets.all(16),
@@ -483,86 +446,32 @@ class _DetailsPageState extends State<DetailsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '🧾 Price Breakdown',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.brown.shade700,
-            ),
-          ),
+          Text('🧾 Price Breakdown', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.brown.shade700)),
           SizedBox(height: 12),
-
-          // _buildSummaryRow("Base Price", "₹${basePrice.toStringAsFixed(2)}"),
-
-          // Divider(),
-          _sectionTitle("Metal Details"),
-          _buildDetailRow(
-            '${productDetails!['purity'] ?? '22'}K ${productDetails!['metal_type_name'] ?? 'Gold'}',
-            '₹${metalRate.toStringAsFixed(0)}',
-            '${metalWeight.toStringAsFixed(1)}g',
-            '₹${metalValue.toStringAsFixed(2)}',
-          ),
-          _buildDetailRow(
-            "Wastage Charges",
-            '',
-            '${wastagePercent.toStringAsFixed(0)}%',
-            '₹${wastageCharges.toStringAsFixed(2)}',
-          ),
-          _buildDetailRow(
-            "Making Charges",
-            '',
-            '${makingPercent.toStringAsFixed(0)}%',
-            '₹${makingCharges.toStringAsFixed(2)}',
-          ),
-
-          if (stoneWeight > 0) ...[
-            SizedBox(height: 10),
-            _sectionTitle("Stone Details"),
-            _buildDetailRow(
-              'Stone (${stoneWeight.toStringAsFixed(2)}g)',
-              '₹${stoneRate.toStringAsFixed(0)}',
-              '${stoneWeight.toStringAsFixed(2)}g',
-              '₹${stoneValue.toStringAsFixed(2)}',
+          // Table
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              headingRowColor: MaterialStateProperty.all(Colors.brown.shade50),
+              columns: [
+                DataColumn(label: Text('Component', style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(label: Text('Rate', style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(label: Text('Weight x Qty', style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(label: Text('Value', style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(label: Text('Final Value', style: TextStyle(fontWeight: FontWeight.bold))),
+              ],
+              rows: allRows,
             ),
-          ],
-
+          ),
+          Divider(),
+          _buildSummaryRow("Making Charges (${makingPercent.toStringAsFixed(0)}%)", "₹${makingCharges.toStringAsFixed(2)}"),
+          _buildSummaryRow("Wastage Charges (${wastagePercent.toStringAsFixed(0)}%)", "₹${wastageCharges.toStringAsFixed(2)}"),
           Divider(),
           _buildSummaryRow("Subtotal", "₹${subtotal.toStringAsFixed(2)}"),
           _buildSummaryRow("GST (3%)", "₹${gst.toStringAsFixed(2)}"),
-          _buildSummaryRow(
-            "Discount",
-            "-₹${discountAmount.toStringAsFixed(2)}",
-          ),
-
+          _buildSummaryRow("Total Discount", "-₹${discount.toStringAsFixed(2)}"),
           Divider(thickness: 1.5),
-          _buildSummaryRow(
-            "Final Price",
-            "₹${grandTotal.toStringAsFixed(2)}",
-            isBold: true,
-            isHighlight: true,
-          ),
-
-          SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(vertical: 14),
-            decoration: BoxDecoration(
-              color: Colors.brown.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.brown.shade100),
-            ),
-            child: Center(
-              child: Text(
-                'Grand Total: ₹${grandTotal.toStringAsFixed(2)}',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.brown,
-                ),
-              ),
-            ),
-          ),
+          _buildSummaryRow("Grand Total", "₹${grandTotal.toStringAsFixed(2)}", isBold: true, isHighlight: true),
         ],
       ),
     );
@@ -582,32 +491,34 @@ class _DetailsPageState extends State<DetailsPage> {
     );
   }
 
-  Widget _buildDetailRow(
-    String component,
-    String rate,
-    String weight,
-    String value,
-  ) {
+  Widget _buildDetailInfoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(flex: 4, child: Text(component)),
-          Expanded(flex: 2, child: Text(rate, textAlign: TextAlign.right)),
-          Expanded(flex: 2, child: Text(weight, textAlign: TextAlign.right)),
-          Expanded(flex: 3, child: Text(value, textAlign: TextAlign.right)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.brown.shade700,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildSummaryRow(
-    String label,
-    String value, {
-    bool isBold = false,
-    bool isHighlight = false,
-  }) {
+  Widget _buildSummaryRow(String label, String value, {bool isBold = false, bool isHighlight = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
@@ -859,114 +770,114 @@ class _DetailsPageState extends State<DetailsPage> {
                         color: Colors.brown,
                       ),
                     ),
-                    SizedBox(height: 6),
+                    SizedBox(height: 8),
                     Text(
                       'Type: ${productDetails!['variant_type_name'] ?? ''} - ${productDetails!['variant_option_name'] ?? ''}',
-                      style: TextStyle(color: Colors.brown, fontSize: 14),
+                      style: TextStyle(color: Colors.brown.shade600, fontSize: 14),
                     ),
-                    SizedBox(height: 6),
-                    Text(
-                      'Final Price: ₹${_calculateFinalPrice().toStringAsFixed(2)}',
-                      style: TextStyle(
-                        color: Colors.green[800],
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (productDetails!['discount_price'] != null &&
-                        double.tryParse(
-                              productDetails!['discount_price'].toString(),
-                            ) !=
-                            null &&
-                        double.tryParse(
-                              productDetails!['discount_price'].toString(),
-                            )! >
-                            0)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4.0),
-                        child: Text(
-                          'You Save: ₹${productDetails!['discount_price']}',
+                    SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Final Price:',
                           style: TextStyle(
-                            color: Colors.red,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
                           ),
                         ),
-                      ),
-                    SizedBox(height: 12),
-                    Divider(),
-                    SizedBox(height: 6),
-                    if (metalDetails.isNotEmpty) ...[
-                      Text(
-                        'Metal Details:',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.brown,
+                        Text(
+                          '₹${_calculateFinalPrice().toStringAsFixed(2)}',
+                          style: TextStyle(
+                            color: Colors.green[800],
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (productDetails!['discount_price'] != null &&
+                        double.tryParse(productDetails!['discount_price'].toString()) != null &&
+                        double.tryParse(productDetails!['discount_price'].toString())! > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'You Save:',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            Text(
+                              '₹${productDetails!['discount_price']}',
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      ...metalDetails.map(
-                        (m) =>
-                            Text('Type: ${m['type']}, Weight: ${m['weight']}'),
-                      ),
-                      SizedBox(height: 6),
-                    ],
-                    if (stoneDetails.isNotEmpty) ...[
+                    SizedBox(height: 16),
+                    Divider(color: Colors.brown.shade200),
+                    SizedBox(height: 12),
+                    
+                    // Product Details Section
+                    _buildDetailInfoRow('Metal Type:', '${productDetails!['metal_type_name'] ?? 'Not specified'}'),
+                    _buildDetailInfoRow('Purity:', '${productDetails!['purity'] ?? '22'}K'),
+                    _buildDetailInfoRow('Metal Weight:', '${productDetails!['metal_weight'] ?? '0'} gm'),
+                    _buildDetailInfoRow('Rate per gram:', '₹${productDetails!['mprice'] ?? '0'}'),
+                    _buildDetailInfoRow('Making Charges:', '${productDetails!['making_charges'] ?? '0'}%'),
+                    _buildDetailInfoRow('Wastage Charges:', '${productDetails!['wastage_percent'] ?? '0'}%'),
+                    if (productDetails!['delivery_days'] != null)
+                      _buildDetailInfoRow('Delivery Days:', '${productDetails!['delivery_days']} days'),
+                    
+                    // Stone Details if available
+                    if (productDetails!['stones'] != null && (productDetails!['stones'] as List).isNotEmpty) ...[
+                      SizedBox(height: 12),
+                      Divider(color: Colors.brown.shade200),
+                      SizedBox(height: 8),
                       Text(
                         'Stone Details:',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.brown,
+                          fontSize: 16,
                         ),
                       ),
-                      ...stoneDetails.map(
-                        (s) =>
-                            Text('Type: ${s['type']}, Weight: ${s['weight']}'),
-                      ),
-                      SizedBox(height: 6),
+                      SizedBox(height: 8),
+                      ...(productDetails!['stones'] as List).map((stone) {
+                        return Padding(
+                          padding: EdgeInsets.symmetric(vertical: 2),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: Text(
+                                  '• ${stone['name'] ?? 'Stone'}',
+                                  style: TextStyle(fontSize: 13, color: Colors.brown.shade700),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 1,
+                                child: Text(
+                                  '${(stone['weight'] ?? 0).toStringAsFixed(2)}g',
+                                  style: TextStyle(fontSize: 13, color: Colors.black87),
+                                  textAlign: TextAlign.right,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
                     ],
-                    Text(
-                      'Making Charges (%): ${productDetails!['making_charges'] ?? '-'}',
-                      style: TextStyle(color: Colors.brown),
-                    ),
-                    Text(
-                      'Wastage (%): ${productDetails!['wastage_percent'] ?? '-'}',
-                      style: TextStyle(color: Colors.brown),
-                    ),
-                    if (productDetails!['purity_info'] != null &&
-                        productDetails!['purity_info'].toString().isNotEmpty)
-                      Text(
-                        'Purity Info: ${productDetails!['purity_info']}',
-                        style: TextStyle(color: Colors.brown),
-                      ),
-                    if (productDetails!['purity'] != null)
-                      Text(
-                        'Purity: ${productDetails!['purity']}%',
-                        style: TextStyle(color: Colors.brown, fontSize: 14),
-                      ),
-                    if (productDetails!['metal_weight'] != null)
-                      Text(
-                        'Weight: ${productDetails!['metal_weight']} gm',
-                        style: TextStyle(color: Colors.brown, fontSize: 14),
-                      ),
-                    if (productDetails!['mprice'] != null)
-                      Text(
-                        'Rate per gram: ₹${productDetails!['mprice']}',
-                        style: TextStyle(color: Colors.brown, fontSize: 14),
-                      ),
-                    if (productDetails!['making_charges'] != null)
-                      Text(
-                        'Making Charges (old): ${productDetails!['making_charges']}%',
-                        style: TextStyle(
-                          color: Colors.brown,
-                          fontSize: 14,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    if (productDetails!['delivery_days'] != null)
-                      Text(
-                        'Delivery Days: ${productDetails!['delivery_days']}',
-                        style: TextStyle(color: Colors.brown, fontSize: 14),
-                      ),
                   ],
                 ),
               ),
@@ -1081,7 +992,6 @@ class _DetailsPageState extends State<DetailsPage> {
                         );
                       }
                     },
-
             child: Text(
               'Proceed to Buy',
               style: TextStyle(color: Colors.white),
@@ -1090,5 +1000,31 @@ class _DetailsPageState extends State<DetailsPage> {
         ),
       ),
     );
+  }
+
+  double _getSubtotal(List<dynamic> metalDetails, List<dynamic> stoneDetails, Map<String, dynamic> productDetails) {
+    double totalMetalValue = metalDetails.fold<double>(0, (sum, m) {
+      final rate = (m['rate'] is String)
+          ? double.tryParse(m['rate']) ?? 0
+          : (m['rate'] ?? 0).toDouble();
+      final weight = (m['weight'] is String)
+          ? double.tryParse(m['weight']) ?? 0
+          : (m['weight'] ?? 0).toDouble();
+      return sum + (rate * weight);
+    });
+    double totalStoneValue = stoneDetails.fold<double>(0, (sum, s) {
+      final rate = (s['rate'] is String)
+          ? double.tryParse(s['rate']) ?? 0
+          : (s['rate'] ?? 0).toDouble();
+      final weight = (s['weight'] is String)
+          ? double.tryParse(s['weight']) ?? 0
+          : (s['weight'] ?? 0).toDouble();
+      return sum + (rate * weight);
+    });
+    double makingPercent = double.tryParse(productDetails['making_charges']?.toString() ?? '0') ?? 0;
+    double wastagePercent = double.tryParse(productDetails['wastage_percent']?.toString() ?? '0') ?? 0;
+    double makingCharges = (totalMetalValue + totalStoneValue) * makingPercent / 100;
+    double wastageCharges = (totalMetalValue + totalStoneValue) * wastagePercent / 100;
+    return totalMetalValue + totalStoneValue + makingCharges + wastageCharges;
   }
 }
