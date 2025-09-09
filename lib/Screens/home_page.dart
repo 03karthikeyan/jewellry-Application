@@ -40,6 +40,7 @@ class _HomePageState extends State<HomePage> {
   Timer? _autoSlideTimer;
   bool _isSearchActive = false; // Track if the search box is active
   List<String> _bannerImages = [];
+  Timer? _timer;
 
   // final List<String> _bannerImages = [
   //   'assets/banner1.webp',
@@ -407,13 +408,23 @@ class _HomePageState extends State<HomePage> {
 class BannerCard extends StatelessWidget {
   final String imagePath;
 
-  BannerCard({required this.imagePath});
+  const BannerCard({Key? key, required this.imagePath}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(10),
-      child: Image.asset(imagePath, fit: BoxFit.cover, width: double.infinity),
+      child: Image.network(
+        imagePath,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            color: Colors.grey[300],
+            child: Icon(Icons.broken_image, color: Colors.grey, size: 50),
+          );
+        },
+      ),
     );
   }
 }

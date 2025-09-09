@@ -19,19 +19,25 @@ class BannerBloc extends Bloc<BannerEvent, BannerState> {
 
     try {
       final response = await http.get(
-        Uri.parse('http://pheonixconstructions.com/mobile/bannerList.php'),
+        Uri.parse('https://pheonixconstructions.com/mobile/bannerList.php'),
       );
 
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
-        final List<dynamic> storeList = jsonData['storeList'];
 
-        final banners =
-            storeList.map((item) => BannerModel.fromJson(item)).toList();
+        if (jsonData['storeList'] != null) {
+          final List<dynamic> storeList = jsonData['storeList'];
+          final banners =
+              storeList.map((item) => BannerModel.fromJson(item)).toList();
 
-        emit(BannerLoaded(banners));
+          emit(BannerLoaded(banners));
+        } else {
+          emit(BannerError('No banners found'));
+        }
       } else {
-        emit(BannerError('Failed to load banners'));
+        emit(
+          BannerError('Failed to load banners (status ${response.statusCode})'),
+        );
       }
     } catch (e) {
       emit(BannerError('Error: ${e.toString()}'));
