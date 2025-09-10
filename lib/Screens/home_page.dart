@@ -346,6 +346,7 @@ class _HomePageState extends State<HomePage> {
                               // price: '₹${product. ?? ''}',
                               // originalPrice: '₹${product.productMrp ?? ''}',
                               imageUrl: product.pimage ?? '',
+                              productId: product.id ?? '',
                             );
                           },
                         ),
@@ -481,9 +482,14 @@ class GenderCategory extends StatelessWidget {
 class ProductCard extends StatelessWidget {
   final String name;
   final String imageUrl;
+  final String productId; // ✅ Add this
 
-  const ProductCard({Key? key, required this.name, required this.imageUrl})
-    : super(key: key);
+  const ProductCard({
+    Key? key,
+    required this.name,
+    required this.imageUrl,
+    required this.productId, // ✅ Require it
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -493,7 +499,10 @@ class ProductCard extends StatelessWidget {
           context,
           MaterialPageRoute(
             builder:
-                (context) => DetailsPage(productId: '', imagePath: imageUrl),
+                (context) => DetailsPage(
+                  productId: productId, // ✅ Pass dynamic productId
+                  imagePath: imageUrl,
+                ),
           ),
         );
       },
@@ -557,7 +566,7 @@ class ProductCard extends StatelessWidget {
               ],
             ),
 
-            // Product Name directly below image
+            // Product Name
             Padding(
               padding: const EdgeInsets.all(8),
               child: Text(
