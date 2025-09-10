@@ -285,6 +285,26 @@ class _ProfilePageState extends State<ProfilePage> {
                               color: Colors.grey.shade600,
                             ),
                           ),
+
+                          //updated
+                          // Text(
+                          //   profileData?['name'] ?? 'User',
+                          //   style: TextStyle(
+                          //     fontSize: 22,
+                          //     fontWeight: FontWeight.bold,
+                          //     color: Colors.brown,
+                          //   ),
+                          // ),
+                          // SizedBox(height: 8),
+                          // Text(
+                          //   profileData?['mobile'] ?? '',
+                          //   style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                          // ),
+                          // SizedBox(height: 4),
+                          // Text(
+                          //   profileData?['email'] ?? '',
+                          //   style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                          // ),
                         ],
                       ),
                     ),

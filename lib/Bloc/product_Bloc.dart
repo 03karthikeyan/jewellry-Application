@@ -26,14 +26,16 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
 
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
-        final List<dynamic> storeList = jsonData['storeList'];
+
+        // ✅ Safe null-check (if storeList is missing/null → fallback to [])
+        final List<dynamic> storeList = (jsonData['storeList'] ?? []) as List;
 
         final products =
             storeList.map((item) => ProductModel.fromJson(item)).toList();
 
         emit(ProductLoaded(products));
       } else {
-        emit(ProductError('Failed to load Product'));
+        emit(ProductError('Failed to load products'));
       }
     } catch (e) {
       emit(ProductError('Error: ${e.toString()}'));

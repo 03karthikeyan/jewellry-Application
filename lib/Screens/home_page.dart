@@ -40,6 +40,8 @@ class _HomePageState extends State<HomePage> {
   Timer? _autoSlideTimer;
   bool _isSearchActive = false; // Track if the search box is active
   List<String> _bannerImages = [];
+  List<RecentlyAddedProduct>? _recentProducts;
+  bool _isLoadingProducts = true;
 
   // final List<String> _bannerImages = [
   //   'assets/banner1.webp',
@@ -56,6 +58,8 @@ class _HomePageState extends State<HomePage> {
 
     context.read<CategoryBloc>().add(FetchCategoryEvent());
     context.read<BannerBloc>().add(FetchBannerEvent());
+
+    _loadRecentlyAddedProducts();
   }
 
   @override
@@ -81,6 +85,21 @@ class _HomePageState extends State<HomePage> {
   }
 
   //Recently Added Products API integration
+
+  Future<void> _loadRecentlyAddedProducts() async {
+    try {
+      final products = await fetchRecentlyAddedProducts();
+      setState(() {
+        _recentProducts = products;
+        _isLoadingProducts = false;
+      });
+    } catch (e) {
+      setState(() {
+        _recentProducts = [];
+        _isLoadingProducts = false;
+      });
+    }
+  }
 
   Future<List<RecentlyAddedProduct>> fetchRecentlyAddedProducts() async {
     final response = await http.get(
@@ -154,11 +173,34 @@ class _HomePageState extends State<HomePage> {
                 BlocBuilder<BannerBloc, BannerState>(
                   builder: (context, state) {
                     if (state is BannerLoading) {
-                      return Center(child: ShimmerLoading());
+                      return SizedBox(
+                        height: 200,
+                        child: ShimmerLoadingFilter(), // shimmer for banner
+                      );
                     } else if (state is BannerLoaded) {
-                      final List<BannerModel> banners = state.banners;
+                      final banners = state.banners;
 
-                      return Stack(
+                      // ✅ Start auto-slide only once
+                      if (_autoSlideTimer == null && banners.isNotEmpty) {
+                        _autoSlideTimer = Timer.periodic(Duration(seconds: 3), (
+                          timer,
+                        ) {
+                          if (_currentPage < banners.length - 1) {
+                            _currentPage++;
+                          } else {
+                            _currentPage = 0;
+                          }
+                          if (_pageController.hasClients) {
+                            _pageController.animateToPage(
+                              _currentPage,
+                              duration: Duration(milliseconds: 500),
+                              curve: Curves.easeInOut,
+                            );
+                          }
+                        });
+                      }
+
+                      return Column(
                         children: [
                           SizedBox(
                             height: 200,
@@ -166,39 +208,32 @@ class _HomePageState extends State<HomePage> {
                               controller: _pageController,
                               itemCount: banners.length,
                               onPageChanged: (index) {
-                                setState(() {
-                                  _currentPage = index;
-                                });
+                                setState(() => _currentPage = index);
                               },
                               itemBuilder: (context, index) {
                                 return BannerCard(
-                                  imagePath:
-                                      banners[index]
-                                          .image, // ✅ Use banners list, not _bannerImages
+                                  imagePath: banners[index].image,
                                 );
                               },
                             ),
                           ),
-                          Positioned(
-                            bottom: 10,
-                            left: 0,
-                            right: 0,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: List.generate(
-                                banners.length,
-                                (index) => AnimatedContainer(
-                                  duration: Duration(milliseconds: 300),
-                                  margin: EdgeInsets.symmetric(horizontal: 4),
-                                  width: _currentPage == index ? 12 : 8,
-                                  height: _currentPage == index ? 12 : 8,
-                                  decoration: BoxDecoration(
-                                    color:
-                                        _currentPage == index
-                                            ? Colors.brown
-                                            : Colors.brown.shade300,
-                                    shape: BoxShape.circle,
-                                  ),
+                          SizedBox(height: 8),
+                          // ✅ Dots indicator
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(
+                              banners.length,
+                              (index) => AnimatedContainer(
+                                duration: Duration(milliseconds: 300),
+                                margin: EdgeInsets.symmetric(horizontal: 4),
+                                width: _currentPage == index ? 12 : 8,
+                                height: _currentPage == index ? 12 : 8,
+                                decoration: BoxDecoration(
+                                  color:
+                                      _currentPage == index
+                                          ? Colors.brown
+                                          : Colors.brown.withOpacity(0.3),
+                                  shape: BoxShape.circle,
                                 ),
                               ),
                             ),
@@ -206,19 +241,13 @@ class _HomePageState extends State<HomePage> {
                         ],
                       );
                     } else if (state is BannerError) {
-                      return Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Center(
-                          child: Text(
-                            state.message,
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        ),
+                      return SizedBox(
+                        height: 200,
+                        child: Center(child: Text("Failed to load banners")),
                       );
                     }
 
-                    // ✅ Return fallback UI for BannerInitial or unknown states
-                    return SizedBox(height: 200); // or a placeholder banner
+                    return SizedBox(height: 200); // fallback
                   },
                 ),
 
@@ -241,7 +270,10 @@ class _HomePageState extends State<HomePage> {
                   child: BlocBuilder<CategoryBloc, CategoryState>(
                     builder: (context, state) {
                       if (state is CategoryLoading) {
-                        return Center(child: ShimmerLoadingFilter());
+                        return SizedBox(
+                          height: 120, // ✅ reserve space
+                          child: ShimmerLoadingFilter(),
+                        );
                       } else if (state is CategoryLoaded) {
                         return SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
@@ -314,46 +346,32 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-                FutureBuilder<List<RecentlyAddedProduct>>(
-                  future: fetchRecentlyAddedProducts(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return Center(child: ShimmerLoadingFilter());
-                    } else if (snapshot.hasError) {
-                      return Center(child: Text('Error loading products'));
-                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return Center(child: Text('No products found.'));
-                    } else {
-                      final products = snapshot.data!;
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: GridView.builder(
-                          shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
-                          itemCount: products.length,
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 10,
-                                mainAxisSpacing: 10,
-                                childAspectRatio: 0.72,
-                              ),
-
-                          itemBuilder: (context, index) {
-                            final product = products[index];
-                            return ProductCard(
-                              name: product.pname ?? 'No Name',
-                              // price: '₹${product. ?? ''}',
-                              // originalPrice: '₹${product.productMrp ?? ''}',
-                              imageUrl: product.pimage ?? '',
-                              productId: product.id ?? '',
-                            );
-                          },
+                _isLoadingProducts
+                    ? Center(child: ShimmerLoadingFilter())
+                    : (_recentProducts == null || _recentProducts!.isEmpty)
+                    ? Center(child: Text('No products found.'))
+                    : Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: GridView.builder(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: _recentProducts!.length,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                          childAspectRatio: 0.72,
                         ),
-                      );
-                    }
-                  },
-                ),
+                        itemBuilder: (context, index) {
+                          final product = _recentProducts![index];
+                          return ProductCard(
+                            name: product.pname ?? 'No Name',
+                            imageUrl: product.pimage ?? '',
+                            productId: product.id ?? '',
+                          );
+                        },
+                      ),
+                    ),
 
                 SizedBox(height: 16),
               ],
@@ -413,8 +431,17 @@ class BannerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: Image.asset(imagePath, fit: BoxFit.cover, width: double.infinity),
+      borderRadius: BorderRadius.circular(1),
+      child: Image.network(
+        imagePath,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        errorBuilder:
+            (context, error, stackTrace) => Container(
+              color: Colors.grey[200],
+              child: Icon(Icons.broken_image, color: Colors.grey, size: 60),
+            ),
+      ),
     );
   }
 }
@@ -759,12 +786,10 @@ class AppDrawer extends StatelessWidget {
               leading: Icon(Icons.home, color: Colors.brown),
               title: Text('Home'),
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => HomePage()),
-                );
+                Navigator.pop(context); // ✅ Close drawer only
               },
             ),
+
             ListTile(
               leading: Icon(Icons.category, color: Colors.brown),
               title: Text('Categories'),

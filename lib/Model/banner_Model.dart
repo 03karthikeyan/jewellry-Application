@@ -6,8 +6,8 @@ class BannerModel {
 
   factory BannerModel.fromJson(Map<String, dynamic> json) {
     return BannerModel(
-      title: json['title'],
-      image: 'http://pheonixconstructions.com/' + json['image'],
+      title: json['title'] ?? '',
+      image: json['image'] ?? '', // ✅ Already a complete URL
     );
   }
 }
