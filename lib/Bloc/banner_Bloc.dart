@@ -24,20 +24,14 @@ class BannerBloc extends Bloc<BannerEvent, BannerState> {
 
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
+        final List<dynamic> storeList = jsonData['storeList'];
 
-        if (jsonData['storeList'] != null) {
-          final List<dynamic> storeList = jsonData['storeList'];
-          final banners =
-              storeList.map((item) => BannerModel.fromJson(item)).toList();
+        final banners =
+            storeList.map((item) => BannerModel.fromJson(item)).toList();
 
-          emit(BannerLoaded(banners));
-        } else {
-          emit(BannerError('No banners found'));
-        }
+        emit(BannerLoaded(banners));
       } else {
-        emit(
-          BannerError('Failed to load banners (status ${response.statusCode})'),
-        );
+        emit(BannerError('Failed to load banners'));
       }
     } catch (e) {
       emit(BannerError('Error: ${e.toString()}'));

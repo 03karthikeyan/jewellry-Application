@@ -5,12 +5,9 @@ class BannerModel {
   BannerModel({required this.title, required this.image});
 
   factory BannerModel.fromJson(Map<String, dynamic> json) {
-    String cleanImage = (json['image'] ?? '').toString().trim();
-    cleanImage = cleanImage.replaceAll("\n", ""); // remove unwanted newline
-
     return BannerModel(
-      title: json['title']?.toString().trim() ?? '',
-      image: cleanImage,
+      title: json['title'],
+      image: 'http://pheonixconstructions.com/' + json['image'],
     );
   }
 }

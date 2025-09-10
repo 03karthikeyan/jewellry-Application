@@ -19,19 +19,23 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
 
     try {
       final response = await http.get(
-        Uri.parse('http://pheonixconstructions.com/mobile/categoryList.php'),
+        Uri.parse('https://pheonixconstructions.com/mobile/categoryList.php'),
       );
 
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
         final List<dynamic> storeList = jsonData['storeList'];
 
-        final banners =
+        final categories =
             storeList.map((item) => CategoryModel.fromJson(item)).toList();
 
-        emit(CategoryLoaded(banners));
+        emit(CategoryLoaded(categories));
       } else {
-        emit(CategoryError('Failed to load Category'));
+        emit(
+          CategoryError(
+            'Failed to load Category (Status: ${response.statusCode})',
+          ),
+        );
       }
     } catch (e) {
       emit(CategoryError('Error: ${e.toString()}'));

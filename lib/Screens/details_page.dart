@@ -51,18 +51,61 @@ class _DetailsPageState extends State<DetailsPage> {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['result'] == 'Success' && data['Product_Details'] != null) {
-          allVariants = List<Map<String, dynamic>>.from(
-            data['Product_Details'],
-          );
+
+        // Try to find product data in any format
+        dynamic productData;
+
+        // First check if it's a direct product object
+        if (data is Map && data.containsKey('pname')) {
+          productData = [data];
+        }
+        // Then check various array formats
+        else if (data['Product_Details'] is List &&
+            data['Product_Details'].isNotEmpty) {
+          productData = data['Product_Details'];
+        } else if (data['product_details'] is List &&
+            data['product_details'].isNotEmpty) {
+          productData = data['product_details'];
+        } else if (data['products'] is List && data['products'].isNotEmpty) {
+          productData = data['products'];
+        } else if (data['data'] is List && data['data'].isNotEmpty) {
+          productData = data['data'];
+        }
+        // Check if the entire response is an array
+        else if (data is List && data.isNotEmpty) {
+          productData = data;
+        }
+        // Last resort: look for any object with product-like fields
+        else if (data is Map) {
+          for (var value in data.values) {
+            if (value is List && value.isNotEmpty) {
+              var firstItem = value.first;
+              if (firstItem is Map &&
+                  (firstItem.containsKey('pname') ||
+                      firstItem.containsKey('product_name'))) {
+                productData = value;
+                break;
+              }
+            } else if (value is Map &&
+                (value.containsKey('pname') ||
+                    value.containsKey('product_name'))) {
+              productData = [value];
+              break;
+            }
+          }
+        }
+
+        if (productData != null) {
+          allVariants = List<Map<String, dynamic>>.from(productData);
 
           variantGroups.clear();
           for (var v in allVariants) {
-            variantGroups.putIfAbsent(v['variant_type_name'], () => []);
-            if (!variantGroups[v['variant_type_name']]!.any(
+            String variantType = v['variant_type_name'] ?? 'Default';
+            variantGroups.putIfAbsent(variantType, () => []);
+            if (!variantGroups[variantType]!.any(
               (e) => e['variant_option_name'] == v['variant_option_name'],
             )) {
-              variantGroups[v['variant_type_name']]!.add(v);
+              variantGroups[variantType]!.add(v);
             }
           }
 
@@ -95,21 +138,132 @@ class _DetailsPageState extends State<DetailsPage> {
   }
 
   Map<String, dynamic>? _getCurrentVariant() {
-    return allVariants.firstWhere(
-      (variant) => variantGroups.keys.every(
-        (type) =>
-            variant['variant_type_name'] == type &&
-            variant['variant_option_name'] ==
-                selectedOptions[type]?['variant_option_name'],
-      ),
-      orElse: () => selectedOptions.values.first,
-    );
+    if (allVariants.isEmpty) return null;
+
+    // Try to find exact match first
+    for (var variant in allVariants) {
+      bool matches = true;
+      for (var type in selectedOptions.keys) {
+        if (variant['variant_type_name'] == type &&
+            variant['variant_option_name'] !=
+                selectedOptions[type]?['variant_option_name']) {
+          matches = false;
+          break;
+        }
+      }
+      if (matches) return variant;
+    }
+
+    // If no exact match, return first variant
+    return allVariants.first;
   }
 
   double _calculateFinalPrice() {
     if (productDetails == null) return 0;
-    // Use API's final_price directly
-    return double.tryParse(productDetails!['final_price']?.toString() ?? '0') ?? 0;
+
+    // Calculate the same way as in price breakdown
+    List<dynamic> metalDetails = [];
+    List<dynamic> stoneDetails = [];
+
+    // Parse metal and stone details
+    try {
+      if (productDetails!['metal_details'] != null &&
+          productDetails!['metal_details'].toString().isNotEmpty &&
+          productDetails!['metal_details'].toString() != "[]") {
+        metalDetails = json.decode(productDetails!['metal_details']);
+      }
+      if (productDetails!['stone_details'] != null &&
+          productDetails!['stone_details'].toString().isNotEmpty &&
+          productDetails!['stone_details'].toString() != "[]") {
+        stoneDetails = json.decode(productDetails!['stone_details']);
+      }
+    } catch (e) {}
+
+    // Fallback for metal details
+    if (metalDetails.isEmpty && productDetails!['metal_type_name'] != null) {
+      String metalType =
+          '${productDetails!['purity'] ?? '22'}K ${productDetails!['metal_type_name'] ?? 'Gold'}';
+      if (productDetails!['variant_option_name'] != null) {
+        metalType += ' ${productDetails!['variant_option_name']}';
+      }
+      metalDetails = [
+        {
+          'type': metalType,
+          'rate':
+              double.tryParse(productDetails!['mprice']?.toString() ?? '0') ??
+              0,
+          'weight':
+              double.tryParse(
+                productDetails!['metal_weight']?.toString() ?? '0',
+              ) ??
+              0,
+        },
+      ];
+    }
+
+    // Fallback for stone details
+    if (stoneDetails.isEmpty && productDetails!['stones'] != null) {
+      var stones = productDetails!['stones'];
+      if (stones is String && stones.isNotEmpty) {
+        try {
+          stones = json.decode(stones);
+        } catch (e) {
+          stones = [];
+        }
+      }
+      Map<String, double> stoneRates = {
+        "Diamond 1 GRAM(1.0CARAT=0.200 MGM)": 400000,
+        "CORAL 1 GRAM(1.00CARAT=0.200 MGM)": 3000,
+        "Ruby 1 Gram(1.00 CARAT=0.200MGM)": 2800,
+        "EAMERALD 1 GRAM(1.00CARAT=0.200 MGM)": 2500,
+      };
+      if (stones is List) {
+        stoneDetails =
+            stones
+                .map(
+                  (s) => {
+                    'type': s['name'] ?? 'Unknown Stone',
+                    'rate': stoneRates[s['name']] ?? 1000,
+                    'weight':
+                        (s['weight'] is String)
+                            ? double.tryParse(s['weight']) ?? 0
+                            : (s['weight'] ?? 0).toDouble(),
+                  },
+                )
+                .toList();
+      }
+    }
+
+    // Calculate totals
+    double totalMetalValue = metalDetails.fold<double>(
+      0,
+      (sum, m) => sum + ((m['rate'] ?? 0) * (m['weight'] ?? 0)),
+    );
+    double totalStoneValue = stoneDetails.fold<double>(
+      0,
+      (sum, s) => sum + ((s['rate'] ?? 0) * (s['weight'] ?? 0)),
+    );
+    double makingPercent =
+        double.tryParse(productDetails!['making_charges']?.toString() ?? '0') ??
+        0;
+    double wastagePercent =
+        double.tryParse(
+          productDetails!['wastage_percent']?.toString() ?? '0',
+        ) ??
+        0;
+    double makingCharges =
+        (totalMetalValue + totalStoneValue) * makingPercent / 100;
+    double wastageCharges =
+        (totalMetalValue + totalStoneValue) * wastagePercent / 100;
+    double subtotal =
+        totalMetalValue + totalStoneValue + makingCharges + wastageCharges;
+    double gst = subtotal * 0.03;
+    double discount =
+        double.tryParse(productDetails!['discount_price']?.toString() ?? '0') ??
+        0;
+    double grandTotal = subtotal + gst - discount;
+
+    return grandTotal;
   }
 
   Widget _variantSelectors() {
@@ -239,107 +393,107 @@ class _DetailsPageState extends State<DetailsPage> {
   }
 
   Future<String?> addToCart() async {
-  if (userId == null || isAddingToCart) return null;
-  setState(() => isAddingToCart = true);
-  try {
-    String cleanProductId = widget.productId.replaceAll('"', '');
-    String unitPrice = _calculateFinalPrice().toStringAsFixed(2);
-    String unitMrp = productDetails!['price']?.toString() ?? unitPrice;
-    String totalPrice = unitPrice;
-    String totalMrp = unitMrp;
+    if (userId == null || isAddingToCart) return null;
 
-    Map<String, String> variants = {};
-    selectedOptions.forEach((type, option) {
-      variants[type.toLowerCase()] = option['variant_option_name'] ?? '';
-    });
-    String variantsJson = Uri.encodeComponent(json.encode(variants));
+    setState(() => isAddingToCart = true);
 
-    String metalWeight = productDetails!['metal_weight']?.toString() ?? '0';
-    String stoneWeight = productDetails!['stone_weight']?.toString() ?? '0';
-    String makingPercent = productDetails!['making_charges']?.toString() ?? '0';
-    String wastagePercent = productDetails!['wastage_percent']?.toString() ?? '0';
-    String purityInfo = Uri.encodeComponent(
-      productDetails!['purity_info']?.toString() ?? '22K Gold',
-    );
+    try {
+      String cleanProductId = widget.productId.replaceAll('"', '');
+      String unitPrice = _calculateFinalPrice().toStringAsFixed(2);
+      String unitMrp = productDetails!['price']?.toString() ?? unitPrice;
+      String totalPrice = unitPrice;
+      String totalMrp = unitMrp;
 
-    Map<String, dynamic> metalDetails = {
-      'type': productDetails!['metal_type_name'] ?? 'gold',
-      'purity': '${productDetails!['purity'] ?? '22'}K',
-      'weight': double.tryParse(metalWeight) ?? 0,
-    };
-    String metalDetailsJson = Uri.encodeComponent(json.encode(metalDetails));
+      // Build variants JSON
+      Map<String, String> variants = {};
+      selectedOptions.forEach((type, option) {
+        variants[type.toLowerCase()] = option['variant_option_name'] ?? '';
+      });
+      String variantsJson = Uri.encodeComponent(json.encode(variants));
 
-    Map<String, dynamic> stoneDetails = {
-      'type': 'diamond',
-      'weight': double.tryParse(stoneWeight) ?? 0,
-      'clarity': 'VS1',
-    };
-    String stoneDetailsJson = Uri.encodeComponent(json.encode(stoneDetails));
-
-    double makingRate =
-        (double.tryParse(unitPrice) ?? 0) * (double.tryParse(makingPercent) ?? 0) / 100;
-    double wastageRate =
-        (double.tryParse(unitPrice) ?? 0) * (double.tryParse(wastagePercent) ?? 0) / 100;
-    double subtotal =
-        (double.tryParse(unitPrice) ?? 0) - makingRate - wastageRate;
-
-    final url =
-        'https://pheonixconstructions.com/mobile/addToCart.php'
-        '?user_id=$userId'
-        '&product_id=$cleanProductId'
-        '&quantity=1'
-        '&unit_price=$unitPrice'
-        '&total_price=$totalPrice'
-        '&unit_mrp=$unitMrp'
-        '&total_mrp=$totalMrp'
-        '&variants=$variantsJson'
-        '&total_metal_weight=$metalWeight'
-        '&total_stone_weight=$stoneWeight'
-        '&metal_details=$metalDetailsJson'
-        '&stone_details=$stoneDetailsJson'
-        '&making_percent=$makingPercent'
-        '&wastage_percent=$wastagePercent'
-        '&making_rate=${makingRate.toStringAsFixed(2)}'
-        '&wastage_rate=${wastageRate.toStringAsFixed(2)}'
-        '&purity_info=$purityInfo'
-        '&subtotal=${subtotal.toStringAsFixed(2)}';
-
-    final response = await http.get(Uri.parse(url));
-    print('Add to cart response: ${response.statusCode} - ${response.body}');
-
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      if (data['success'] == true) {
-        final String cartId = data['cart_id']?.toString() ?? "";
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Added to cart successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        return cartId; // ✅ return cartId here
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('API Error: ${data['message'] ?? 'Unknown error'}'),
-          ),
-        );
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('HTTP Error: ${response.statusCode}')),
+      // Additional product details
+      String metalWeight = productDetails!['metal_weight']?.toString() ?? '0';
+      String stoneWeight = productDetails!['stone_weight']?.toString() ?? '0';
+      String makingPercent =
+          productDetails!['making_charges']?.toString() ?? '0';
+      String wastagePercent =
+          productDetails!['wastage_percent']?.toString() ?? '0';
+      String purityInfo = Uri.encodeComponent(
+        productDetails!['purity_info']?.toString() ?? '22K Gold',
       );
-    }
-  } catch (e) {
-    print('Add to cart error: $e');
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Error: $e')));
-  }
-  setState(() => isAddingToCart = false);
-  return null; // return null if failed
-}
 
+      // Metal details JSON
+      Map<String, dynamic> metalDetails = {
+        'type': productDetails!['metal_type_name'] ?? 'gold',
+        'purity': '${productDetails!['purity'] ?? '22'}K',
+        'weight': double.tryParse(metalWeight) ?? 0,
+      };
+      String metalDetailsJson = Uri.encodeComponent(json.encode(metalDetails));
+
+      // Stone details JSON
+      Map<String, dynamic> stoneDetails = {
+        'type': 'diamond',
+        'weight': double.tryParse(stoneWeight) ?? 0,
+        'clarity': 'VS1',
+      };
+      String stoneDetailsJson = Uri.encodeComponent(json.encode(stoneDetails));
+
+      // Rates
+      double makingRate =
+          (double.tryParse(unitPrice) ?? 0) *
+          (double.tryParse(makingPercent) ?? 0) /
+          100;
+      double wastageRate =
+          (double.tryParse(unitPrice) ?? 0) *
+          (double.tryParse(wastagePercent) ?? 0) /
+          100;
+      double subtotal =
+          (double.tryParse(unitPrice) ?? 0) - makingRate - wastageRate;
+
+      final url =
+          'https://pheonixconstructions.com/mobile/addToCart.php'
+          '?user_id=$userId'
+          '&product_id=$cleanProductId'
+          '&quantity=1'
+          '&unit_price=$unitPrice'
+          '&total_price=$totalPrice'
+          '&unit_mrp=$unitMrp'
+          '&total_mrp=$totalMrp'
+          '&variants=$variantsJson'
+          '&total_metal_weight=$metalWeight'
+          '&total_stone_weight=$stoneWeight'
+          '&metal_details=$metalDetailsJson'
+          '&stone_details=$stoneDetailsJson'
+          '&making_percent=$makingPercent'
+          '&wastage_percent=$wastagePercent'
+          '&making_rate=${makingRate.toStringAsFixed(2)}'
+          '&wastage_rate=${wastageRate.toStringAsFixed(2)}'
+          '&purity_info=$purityInfo'
+          '&subtotal=${subtotal.toStringAsFixed(2)}';
+
+      print('Add to cart URL: $url');
+      final response = await http.get(Uri.parse(url));
+      print('Add to cart response: ${response.statusCode} - ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data['success'] == true) {
+          final cartId = data['cart_id']?.toString();
+          return cartId; // ✅ Return cartId here
+        } else {
+          print('API Error: ${data['message']}');
+        }
+      } else {
+        print('HTTP Error: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Add to cart error: $e');
+    }
+
+    setState(() => isAddingToCart = false);
+    return null; // ✅ In case of failure
+  }
 
   Widget _buildPriceBreakdown() {
     if (productDetails == null) return SizedBox();
@@ -362,16 +516,23 @@ class _DetailsPageState extends State<DetailsPage> {
 
     // Fallback for old API: use single metal if metal_details is empty
     if (metalDetails.isEmpty && productDetails!['metal_type_name'] != null) {
-      String metalType = '${productDetails!['purity'] ?? '22'}K ${productDetails!['metal_type_name'] ?? 'Gold'}';
+      String metalType =
+          '${productDetails!['purity'] ?? '22'}K ${productDetails!['metal_type_name'] ?? 'Gold'}';
       if (productDetails!['variant_option_name'] != null) {
         metalType += ' ${productDetails!['variant_option_name']}';
       }
       metalDetails = [
         {
           'type': metalType,
-          'rate': double.tryParse(productDetails!['mprice']?.toString() ?? '0') ?? 0,
-          'weight': double.tryParse(productDetails!['metal_weight']?.toString() ?? '0') ?? 0,
-        }
+          'rate':
+              double.tryParse(productDetails!['mprice']?.toString() ?? '0') ??
+              0,
+          'weight':
+              double.tryParse(
+                productDetails!['metal_weight']?.toString() ?? '0',
+              ) ??
+              0,
+        },
       ];
     }
 
@@ -392,47 +553,122 @@ class _DetailsPageState extends State<DetailsPage> {
         "EAMERALD 1 GRAM(1.00CARAT=0.200 MGM)": 2500,
       };
       if (stones is List) {
-        stoneDetails = stones.map((s) => {
-          'type': s['name'] ?? 'Unknown Stone',
-          'rate': stoneRates[s['name']] ?? 1000,
-          'weight': (s['weight'] is String)
-              ? double.tryParse(s['weight']) ?? 0
-              : (s['weight'] ?? 0).toDouble(),
-        }).toList();
+        stoneDetails =
+            stones
+                .map(
+                  (s) => {
+                    'type': s['name'] ?? 'Unknown Stone',
+                    'rate': stoneRates[s['name']] ?? 1000,
+                    'weight':
+                        (s['weight'] is String)
+                            ? double.tryParse(s['weight']) ?? 0
+                            : (s['weight'] ?? 0).toDouble(),
+                  },
+                )
+                .toList();
       }
     }
 
     // Build rows for DataTable
     List<DataRow> allRows = [];
     for (var m in metalDetails) {
-      allRows.add(DataRow(cells: [
-        DataCell(Text(m['type']?.toString() ?? '', style: TextStyle(fontSize: 13))),
-        DataCell(Text('₹${(m['rate'] ?? 0).toStringAsFixed(0)}', textAlign: TextAlign.right)),
-        DataCell(Text('${(m['weight'] ?? 0).toStringAsFixed(2)} x 1', textAlign: TextAlign.right)),
-        DataCell(Text('₹${((m['rate'] ?? 0) * (m['weight'] ?? 0)).toStringAsFixed(2)}', textAlign: TextAlign.right)),
-        DataCell(Text('₹${((m['rate'] ?? 0) * (m['weight'] ?? 0)).toStringAsFixed(2)}', textAlign: TextAlign.right)),
-      ]));
+      allRows.add(
+        DataRow(
+          cells: [
+            DataCell(
+              Text(m['type']?.toString() ?? '', style: TextStyle(fontSize: 13)),
+            ),
+            DataCell(
+              Text(
+                '₹${(m['rate'] ?? 0).toStringAsFixed(0)}',
+                textAlign: TextAlign.right,
+              ),
+            ),
+            DataCell(
+              Text(
+                '${(m['weight'] ?? 0).toStringAsFixed(2)} x 1',
+                textAlign: TextAlign.right,
+              ),
+            ),
+            DataCell(
+              Text(
+                '₹${((m['rate'] ?? 0) * (m['weight'] ?? 0)).toStringAsFixed(2)}',
+                textAlign: TextAlign.right,
+              ),
+            ),
+            DataCell(
+              Text(
+                '₹${((m['rate'] ?? 0) * (m['weight'] ?? 0)).toStringAsFixed(2)}',
+                textAlign: TextAlign.right,
+              ),
+            ),
+          ],
+        ),
+      );
     }
     for (var s in stoneDetails) {
-      allRows.add(DataRow(cells: [
-        DataCell(Text(s['type']?.toString() ?? '', style: TextStyle(fontSize: 13))),
-        DataCell(Text('₹${(s['rate'] ?? 0).toStringAsFixed(0)}', textAlign: TextAlign.right)),
-        DataCell(Text('${(s['weight'] ?? 0).toStringAsFixed(2)} x 1', textAlign: TextAlign.right)),
-        DataCell(Text('₹${((s['rate'] ?? 0) * (s['weight'] ?? 0)).toStringAsFixed(2)}', textAlign: TextAlign.right)),
-        DataCell(Text('₹${((s['rate'] ?? 0) * (s['weight'] ?? 0)).toStringAsFixed(2)}', textAlign: TextAlign.right)),
-      ]));
+      allRows.add(
+        DataRow(
+          cells: [
+            DataCell(
+              Text(s['type']?.toString() ?? '', style: TextStyle(fontSize: 13)),
+            ),
+            DataCell(
+              Text(
+                '₹${(s['rate'] ?? 0).toStringAsFixed(0)}',
+                textAlign: TextAlign.right,
+              ),
+            ),
+            DataCell(
+              Text(
+                '${(s['weight'] ?? 0).toStringAsFixed(2)} x 1',
+                textAlign: TextAlign.right,
+              ),
+            ),
+            DataCell(
+              Text(
+                '₹${((s['rate'] ?? 0) * (s['weight'] ?? 0)).toStringAsFixed(2)}',
+                textAlign: TextAlign.right,
+              ),
+            ),
+            DataCell(
+              Text(
+                '₹${((s['rate'] ?? 0) * (s['weight'] ?? 0)).toStringAsFixed(2)}',
+                textAlign: TextAlign.right,
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
     // Totals & charges
-    double totalMetalValue = metalDetails.fold<double>(0, (sum, m) => sum + ((m['rate'] ?? 0) * (m['weight'] ?? 0)));
-    double totalStoneValue = stoneDetails.fold<double>(0, (sum, s) => sum + ((s['rate'] ?? 0) * (s['weight'] ?? 0)));
-    double makingPercent = double.tryParse(productDetails!['making_charges']?.toString() ?? '0') ?? 0;
-    double wastagePercent = double.tryParse(productDetails!['wastage_percent']?.toString() ?? '0') ?? 0;
-    double makingCharges = (totalMetalValue + totalStoneValue) * makingPercent / 100;
-    double wastageCharges = (totalMetalValue + totalStoneValue) * wastagePercent / 100;
-    double subtotal = totalMetalValue + totalStoneValue + makingCharges + wastageCharges;
+    double totalMetalValue = metalDetails.fold<double>(
+      0,
+      (sum, m) => sum + ((m['rate'] ?? 0) * (m['weight'] ?? 0)),
+    );
+    double totalStoneValue = stoneDetails.fold<double>(
+      0,
+      (sum, s) => sum + ((s['rate'] ?? 0) * (s['weight'] ?? 0)),
+    );
+    double makingPercent =
+        double.tryParse(productDetails!['making_charges']?.toString() ?? '0') ??
+        0;
+    double wastagePercent =
+        double.tryParse(
+          productDetails!['wastage_percent']?.toString() ?? '0',
+        ) ??
+        0;
+    double makingCharges =
+        (totalMetalValue + totalStoneValue) * makingPercent / 100;
+    double wastageCharges =
+        (totalMetalValue + totalStoneValue) * wastagePercent / 100;
+    double subtotal =
+        totalMetalValue + totalStoneValue + makingCharges + wastageCharges;
     double gst = subtotal * 0.03;
-    double discount = double.tryParse(productDetails!['discount_price']?.toString() ?? '0') ?? 0;
+    double discount =
+        double.tryParse(productDetails!['discount_price']?.toString() ?? '0') ??
+        0;
     double grandTotal = subtotal + gst - discount;
 
     return Container(
@@ -446,7 +682,14 @@ class _DetailsPageState extends State<DetailsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('🧾 Price Breakdown', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.brown.shade700)),
+          Text(
+            '🧾 Price Breakdown',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.brown.shade700,
+            ),
+          ),
           SizedBox(height: 12),
           // Table
           SingleChildScrollView(
@@ -454,24 +697,63 @@ class _DetailsPageState extends State<DetailsPage> {
             child: DataTable(
               headingRowColor: MaterialStateProperty.all(Colors.brown.shade50),
               columns: [
-                DataColumn(label: Text('Component', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('Rate', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('Weight x Qty', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('Value', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('Final Value', style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(
+                  label: Text(
+                    'Component',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Rate',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Weight x Qty',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Value',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Final Value',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
               ],
               rows: allRows,
             ),
           ),
           Divider(),
-          _buildSummaryRow("Making Charges (${makingPercent.toStringAsFixed(0)}%)", "₹${makingCharges.toStringAsFixed(2)}"),
-          _buildSummaryRow("Wastage Charges (${wastagePercent.toStringAsFixed(0)}%)", "₹${wastageCharges.toStringAsFixed(2)}"),
+          _buildSummaryRow(
+            "Making Charges (${makingPercent.toStringAsFixed(0)}%)",
+            "₹${makingCharges.toStringAsFixed(2)}",
+          ),
+          _buildSummaryRow(
+            "Wastage Charges (${wastagePercent.toStringAsFixed(0)}%)",
+            "₹${wastageCharges.toStringAsFixed(2)}",
+          ),
           Divider(),
           _buildSummaryRow("Subtotal", "₹${subtotal.toStringAsFixed(2)}"),
           _buildSummaryRow("GST (3%)", "₹${gst.toStringAsFixed(2)}"),
-          _buildSummaryRow("Total Discount", "-₹${discount.toStringAsFixed(2)}"),
+          _buildSummaryRow(
+            "Total Discount",
+            "-₹${discount.toStringAsFixed(2)}",
+          ),
           Divider(thickness: 1.5),
-          _buildSummaryRow("Grand Total", "₹${grandTotal.toStringAsFixed(2)}", isBold: true, isHighlight: true),
+          _buildSummaryRow(
+            "Grand Total",
+            "₹${grandTotal.toStringAsFixed(2)}",
+            isBold: true,
+            isHighlight: true,
+          ),
         ],
       ),
     );
@@ -518,7 +800,12 @@ class _DetailsPageState extends State<DetailsPage> {
     );
   }
 
-  Widget _buildSummaryRow(String label, String value, {bool isBold = false, bool isHighlight = false}) {
+  Widget _buildSummaryRow(
+    String label,
+    String value, {
+    bool isBold = false,
+    bool isHighlight = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
@@ -773,7 +1060,10 @@ class _DetailsPageState extends State<DetailsPage> {
                     SizedBox(height: 8),
                     Text(
                       'Type: ${productDetails!['variant_type_name'] ?? ''} - ${productDetails!['variant_option_name'] ?? ''}',
-                      style: TextStyle(color: Colors.brown.shade600, fontSize: 14),
+                      style: TextStyle(
+                        color: Colors.brown.shade600,
+                        fontSize: 14,
+                      ),
                     ),
                     SizedBox(height: 12),
                     Row(
@@ -798,8 +1088,14 @@ class _DetailsPageState extends State<DetailsPage> {
                       ],
                     ),
                     if (productDetails!['discount_price'] != null &&
-                        double.tryParse(productDetails!['discount_price'].toString()) != null &&
-                        double.tryParse(productDetails!['discount_price'].toString())! > 0)
+                        double.tryParse(
+                              productDetails!['discount_price'].toString(),
+                            ) !=
+                            null &&
+                        double.tryParse(
+                              productDetails!['discount_price'].toString(),
+                            )! >
+                            0)
                       Padding(
                         padding: const EdgeInsets.only(top: 6.0),
                         child: Row(
@@ -827,19 +1123,41 @@ class _DetailsPageState extends State<DetailsPage> {
                     SizedBox(height: 16),
                     Divider(color: Colors.brown.shade200),
                     SizedBox(height: 12),
-                    
+
                     // Product Details Section
-                    _buildDetailInfoRow('Metal Type:', '${productDetails!['metal_type_name'] ?? 'Not specified'}'),
-                    _buildDetailInfoRow('Purity:', '${productDetails!['purity'] ?? '22'}K'),
-                    _buildDetailInfoRow('Metal Weight:', '${productDetails!['metal_weight'] ?? '0'} gm'),
-                    _buildDetailInfoRow('Rate per gram:', '₹${productDetails!['mprice'] ?? '0'}'),
-                    _buildDetailInfoRow('Making Charges:', '${productDetails!['making_charges'] ?? '0'}%'),
-                    _buildDetailInfoRow('Wastage Charges:', '${productDetails!['wastage_percent'] ?? '0'}%'),
+                    _buildDetailInfoRow(
+                      'Metal Type:',
+                      '${productDetails!['metal_type_name'] ?? 'Not specified'}',
+                    ),
+                    _buildDetailInfoRow(
+                      'Purity:',
+                      '${productDetails!['purity'] ?? '22'}K',
+                    ),
+                    _buildDetailInfoRow(
+                      'Metal Weight:',
+                      '${productDetails!['metal_weight'] ?? '0'} gm',
+                    ),
+                    _buildDetailInfoRow(
+                      'Rate per gram:',
+                      '₹${productDetails!['mprice'] ?? '0'}',
+                    ),
+                    _buildDetailInfoRow(
+                      'Making Charges:',
+                      '${productDetails!['making_charges'] ?? '0'}%',
+                    ),
+                    _buildDetailInfoRow(
+                      'Wastage Charges:',
+                      '${productDetails!['wastage_percent'] ?? '0'}%',
+                    ),
                     if (productDetails!['delivery_days'] != null)
-                      _buildDetailInfoRow('Delivery Days:', '${productDetails!['delivery_days']} days'),
-                    
+                      _buildDetailInfoRow(
+                        'Delivery Days:',
+                        '${productDetails!['delivery_days']} days',
+                      ),
+
                     // Stone Details if available
-                    if (productDetails!['stones'] != null && (productDetails!['stones'] as List).isNotEmpty) ...[
+                    if (productDetails!['stones'] != null &&
+                        (productDetails!['stones'] as List).isNotEmpty) ...[
                       SizedBox(height: 12),
                       Divider(color: Colors.brown.shade200),
                       SizedBox(height: 8),
@@ -862,14 +1180,20 @@ class _DetailsPageState extends State<DetailsPage> {
                                 flex: 3,
                                 child: Text(
                                   '• ${stone['name'] ?? 'Stone'}',
-                                  style: TextStyle(fontSize: 13, color: Colors.brown.shade700),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.brown.shade700,
+                                  ),
                                 ),
                               ),
                               Expanded(
                                 flex: 1,
                                 child: Text(
                                   '${(stone['weight'] ?? 0).toStringAsFixed(2)}g',
-                                  style: TextStyle(fontSize: 13, color: Colors.black87),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.black87,
+                                  ),
                                   textAlign: TextAlign.right,
                                 ),
                               ),
@@ -1002,29 +1326,43 @@ class _DetailsPageState extends State<DetailsPage> {
     );
   }
 
-  double _getSubtotal(List<dynamic> metalDetails, List<dynamic> stoneDetails, Map<String, dynamic> productDetails) {
+  double _getSubtotal(
+    List<dynamic> metalDetails,
+    List<dynamic> stoneDetails,
+    Map<String, dynamic> productDetails,
+  ) {
     double totalMetalValue = metalDetails.fold<double>(0, (sum, m) {
-      final rate = (m['rate'] is String)
-          ? double.tryParse(m['rate']) ?? 0
-          : (m['rate'] ?? 0).toDouble();
-      final weight = (m['weight'] is String)
-          ? double.tryParse(m['weight']) ?? 0
-          : (m['weight'] ?? 0).toDouble();
+      final rate =
+          (m['rate'] is String)
+              ? double.tryParse(m['rate']) ?? 0
+              : (m['rate'] ?? 0).toDouble();
+      final weight =
+          (m['weight'] is String)
+              ? double.tryParse(m['weight']) ?? 0
+              : (m['weight'] ?? 0).toDouble();
       return sum + (rate * weight);
     });
     double totalStoneValue = stoneDetails.fold<double>(0, (sum, s) {
-      final rate = (s['rate'] is String)
-          ? double.tryParse(s['rate']) ?? 0
-          : (s['rate'] ?? 0).toDouble();
-      final weight = (s['weight'] is String)
-          ? double.tryParse(s['weight']) ?? 0
-          : (s['weight'] ?? 0).toDouble();
+      final rate =
+          (s['rate'] is String)
+              ? double.tryParse(s['rate']) ?? 0
+              : (s['rate'] ?? 0).toDouble();
+      final weight =
+          (s['weight'] is String)
+              ? double.tryParse(s['weight']) ?? 0
+              : (s['weight'] ?? 0).toDouble();
       return sum + (rate * weight);
     });
-    double makingPercent = double.tryParse(productDetails['making_charges']?.toString() ?? '0') ?? 0;
-    double wastagePercent = double.tryParse(productDetails['wastage_percent']?.toString() ?? '0') ?? 0;
-    double makingCharges = (totalMetalValue + totalStoneValue) * makingPercent / 100;
-    double wastageCharges = (totalMetalValue + totalStoneValue) * wastagePercent / 100;
+    double makingPercent =
+        double.tryParse(productDetails['making_charges']?.toString() ?? '0') ??
+        0;
+    double wastagePercent =
+        double.tryParse(productDetails['wastage_percent']?.toString() ?? '0') ??
+        0;
+    double makingCharges =
+        (totalMetalValue + totalStoneValue) * makingPercent / 100;
+    double wastageCharges =
+        (totalMetalValue + totalStoneValue) * wastagePercent / 100;
     return totalMetalValue + totalStoneValue + makingCharges + wastageCharges;
   }
 }
