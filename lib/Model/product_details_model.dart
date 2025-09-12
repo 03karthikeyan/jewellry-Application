@@ -21,14 +21,14 @@ class ProductDetail {
 
   factory ProductDetail.fromJson(Map<String, dynamic> json) {
     return ProductDetail(
-      productId: json['product_id'],
-      variantOptionName: json['variant_option_name'],
-      purity: json['purity'],
-      makingCharges: json['making_charges'],
-      metalTypeName: json['metal_type_name'],
-      ratePerGram: json['current_rate_per_gram'],
-      metalWeight: json['metal_weight'],
-      deliveryDays: json['delivery_days'],
+      productId: json['product_id'] ?? '',
+      variantOptionName: json['variant_option_name'] ?? '',
+      purity: json['purity'] ?? '',
+      makingCharges: json['making_charges'] ?? '',
+      metalTypeName: json['metal_type_name'] ?? '',
+      ratePerGram: json['current_rate_per_gram'] ?? '0',
+      metalWeight: json['metal_weight'] ?? '0',
+      deliveryDays: json['delivery_days'] ?? '',
     );
   }
 }

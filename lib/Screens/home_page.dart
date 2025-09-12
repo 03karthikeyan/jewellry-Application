@@ -24,6 +24,7 @@ import 'package:jewellery/Screens/silver_jewellery_page.dart';
 import 'package:jewellery/State/banner_State.dart';
 import 'package:jewellery/State/category_State.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'dart:async';
 import 'package:video_player/video_player.dart';
 import 'package:marquee/marquee.dart';
@@ -54,7 +55,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _startAutoSlide();
+    _startBannerAutoSlide(_bannerImages.length);
 
     context.read<CategoryBloc>().add(FetchCategoryEvent());
     context.read<BannerBloc>().add(FetchBannerEvent());
@@ -69,13 +70,20 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
-  void _startAutoSlide() {
+  void _startBannerAutoSlide(int bannerCount) {
+    _autoSlideTimer?.cancel(); // cancel previous timer if exists
+
+    if (bannerCount <= 1) return; // no need to slide if only 1 banner
+
     _autoSlideTimer = Timer.periodic(Duration(seconds: 3), (timer) {
-      if (_currentPage < _bannerImages.length - 1) {
+      if (!_pageController.hasClients) return;
+
+      if (_currentPage < bannerCount - 1) {
         _currentPage++;
       } else {
         _currentPage = 0;
       }
+
       _pageController.animateToPage(
         _currentPage,
         duration: Duration(milliseconds: 500),
@@ -180,36 +188,15 @@ class _HomePageState extends State<HomePage> {
                     } else if (state is BannerLoaded) {
                       final banners = state.banners;
 
-                      // ✅ Start auto-slide only once
-                      if (_autoSlideTimer == null && banners.isNotEmpty) {
-                        _autoSlideTimer = Timer.periodic(Duration(seconds: 3), (
-                          timer,
-                        ) {
-                          if (_currentPage < banners.length - 1) {
-                            _currentPage++;
-                          } else {
-                            _currentPage = 0;
-                          }
-                          if (_pageController.hasClients) {
-                            _pageController.animateToPage(
-                              _currentPage,
-                              duration: Duration(milliseconds: 500),
-                              curve: Curves.easeInOut,
-                            );
-                          }
-                        });
-                      }
+                      _startBannerAutoSlide(banners.length);
 
                       return Column(
                         children: [
                           SizedBox(
-                            height: 200,
+                            height: 180,
                             child: PageView.builder(
                               controller: _pageController,
                               itemCount: banners.length,
-                              onPageChanged: (index) {
-                                setState(() => _currentPage = index);
-                              },
                               itemBuilder: (context, index) {
                                 return BannerCard(
                                   imagePath: banners[index].image,
@@ -217,25 +204,18 @@ class _HomePageState extends State<HomePage> {
                               },
                             ),
                           ),
-                          SizedBox(height: 8),
-                          // ✅ Dots indicator
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: List.generate(
-                              banners.length,
-                              (index) => AnimatedContainer(
-                                duration: Duration(milliseconds: 300),
-                                margin: EdgeInsets.symmetric(horizontal: 4),
-                                width: _currentPage == index ? 12 : 8,
-                                height: _currentPage == index ? 12 : 8,
-                                decoration: BoxDecoration(
-                                  color:
-                                      _currentPage == index
-                                          ? Colors.brown
-                                          : Colors.brown.withOpacity(0.3),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
+                          SizedBox(
+                            height: 8,
+                          ), // small gap between banner and dots
+                          SmoothPageIndicator(
+                            controller: _pageController,
+                            count: banners.length,
+                            effect: WormEffect(
+                              dotHeight: 8,
+                              dotWidth: 8,
+                              spacing: 6,
+                              dotColor: Colors.grey.shade300,
+                              activeDotColor: Colors.blueAccent,
                             ),
                           ),
                         ],
@@ -316,19 +296,28 @@ class _HomePageState extends State<HomePage> {
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      ChoiceItem(
-                        title: 'Diamond',
-                        imagePath: 'assets/diamond.png',
-                      ),
-                      ChoiceItem(title: 'Gold', imagePath: 'assets/gold.png'),
-                      ChoiceItem(
-                        title: 'Silver',
-                        imagePath: 'assets/silver.png',
-                      ),
-                    ],
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        ChoiceItem(
+                          title: 'Diamond',
+                          imagePath: 'assets/diamond.jpg',
+                        ),
+                        SizedBox(width: 12),
+                        ChoiceItem(title: 'Gold', imagePath: 'assets/gold.jpg'),
+                        SizedBox(width: 12),
+                        ChoiceItem(
+                          title: 'Silver',
+                          imagePath: 'assets/silver.jpg',
+                        ),
+                        SizedBox(width: 12),
+                        ChoiceItem(
+                          title: 'Platinum',
+                          imagePath: 'assets/platinum.jpg',
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
@@ -426,21 +415,23 @@ class _HomePageState extends State<HomePage> {
 class BannerCard extends StatelessWidget {
   final String imagePath;
 
-  BannerCard({required this.imagePath});
+  const BannerCard({required this.imagePath, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(1),
-      child: Image.network(
-        imagePath,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        errorBuilder:
-            (context, error, stackTrace) => Container(
-              color: Colors.grey[200],
-              child: Icon(Icons.broken_image, color: Colors.grey, size: 60),
-            ),
+      borderRadius: BorderRadius.circular(2),
+      child: SizedBox.expand(
+        child: Image.network(
+          imagePath,
+          fit: BoxFit.fill,
+          alignment: Alignment.center,
+          errorBuilder:
+              (context, error, stackTrace) => Container(
+                color: Colors.grey[200],
+                child: Icon(Icons.broken_image, color: Colors.grey, size: 60),
+              ),
+        ),
       ),
     );
   }
@@ -625,22 +616,22 @@ class ChoiceItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        if (title == 'Diamond') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => DiamondJewelleryPage()),
-          );
-        } else if (title == 'Gold') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => GoldJewelleryPage()),
-          );
-        } else if (title == 'Silver') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => SilverJewelleryPage()),
-          );
-        }
+        // if (title == 'Diamond') {
+        //   Navigator.push(
+        //     context,
+        //     MaterialPageRoute(builder: (context) => DiamondJewelleryPage()),
+        //   );
+        // } else if (title == 'Gold') {
+        //   Navigator.push(
+        //     context,
+        //     MaterialPageRoute(builder: (context) => GoldJewelleryPage()),
+        //   );
+        // } else if (title == 'Silver') {
+        //   Navigator.push(
+        //     context,
+        //     MaterialPageRoute(builder: (context) => SilverJewelleryPage()),
+        //   );
+        // }
       },
       child: Column(
         children: [
