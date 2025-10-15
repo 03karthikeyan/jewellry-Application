@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
-import 'package:jewellery/Bloc/product_Bloc.dart';
-import 'package:jewellery/Event/product_Event.dart';
-import 'package:jewellery/Screens/details_page.dart';
-import 'package:jewellery/Screens/shimmer_Loader.dart';
-import 'package:jewellery/State/product_State.dart';
+import 'package:sri_chandra_jewel/Bloc/product_Bloc.dart';
+import 'package:sri_chandra_jewel/Event/product_Event.dart';
+import 'package:sri_chandra_jewel/Screens/details_page.dart';
+import 'package:sri_chandra_jewel/Screens/shimmer_Loader.dart';
+import 'package:sri_chandra_jewel/State/product_State.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProductListPage extends StatefulWidget {
@@ -49,8 +49,8 @@ class _ProductListPageState extends State<ProductListPage> {
 
     final uri = Uri.parse(
       isWishlisted
-          ? 'https://pheonixconstructions.com/mobile/wishlistRemove.php?user_id=$userId&product_id=$productId'
-          : 'https://pheonixconstructions.com/mobile/wishlistAdd.php?user_id=$userId&product_id=$productId',
+          ? 'https://afosindia.com/mobile/wishlistRemove.php?user_id=$userId&product_id=$productId'
+          : 'https://afosindia.com/mobile/wishlistAdd.php?user_id=$userId&product_id=$productId',
     );
 
     try {
@@ -160,7 +160,7 @@ class _ProductListPageState extends State<ProductListPage> {
                                     top: Radius.circular(16),
                                   ),
                                   child: Image.network(
-                                    product.image,
+                                    "https://pheonixconstructions.com/assets/images/product_image/${product.image}",
                                     height: 140,
                                     width: double.infinity,
                                     fit: BoxFit.cover,

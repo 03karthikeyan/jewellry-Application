@@ -1,4 +1,4 @@
-import 'package:jewellery/Model/profile_model.dart';
+import 'package:sri_chandra_jewel/Model/profile_model.dart';
 
 abstract class ProfileState {}
 

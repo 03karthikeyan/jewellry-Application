@@ -1,4 +1,4 @@
-import 'package:jewellery/Model/category_Model.dart';
+import 'package:sri_chandra_jewel/Model/category_Model.dart';
 
 abstract class CategoryState {}
 

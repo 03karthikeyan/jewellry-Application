@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:jewellery/Screens/bottom_nav_page.dart';
+import 'package:sri_chandra_jewel/Screens/bottom_nav_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'login_screen.dart';
 

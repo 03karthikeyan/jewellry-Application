@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:jewellery/Model/address_Model.dart';
+import 'package:sri_chandra_jewel/Model/address_Model.dart';
 
 class OrderCheckoutPage extends StatefulWidget {
   final String userId;
@@ -50,7 +50,7 @@ class _OrderCheckoutPageState extends State<OrderCheckoutPage> {
     final String cartId = '379'; // Or make it dynamic later
 
     final url =
-        'https://pheonixconstructions.com/mobile/placeOrder.php?user_id=$userId'
+        'https://afosindia.com/mobile//placeOrder.php?user_id=$userId'
         '&grandtotal=$grandTotal'
         '&address_id=$addressId'
         '&cart_id=$cartId';

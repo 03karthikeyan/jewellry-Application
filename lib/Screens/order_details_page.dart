@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:jewellery/Model/order_details_model.dart';
-import 'package:jewellery/Model/product_Model.dart';
+import 'package:sri_chandra_jewel/Model/order_details_model.dart';
+import 'package:sri_chandra_jewel/Model/product_Model.dart';
 
 class OrderDetailsPage extends StatefulWidget {
   final int orderId;
@@ -29,7 +29,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
     try {
       final response = await http.get(
         Uri.parse(
-          'https://pheonixconstructions.com/mobile/orderDetails.php?order_id=${widget.orderId}',
+          'https://afosindia.com/mobile/orderDetails.php?order_id=${widget.orderId}',
         ),
       );
 
@@ -68,7 +68,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
   Future<String> fetchProductName(int productId) async {
     final response = await http.get(
       Uri.parse(
-        'https://pheonixconstructions.com/mobile/productDetails.php?product_id=$productId',
+        'https://afosindia.com/mobile/productDetails.php?product_id=$productId',
       ),
     );
 

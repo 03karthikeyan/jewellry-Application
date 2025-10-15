@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
-import 'package:jewellery/Screens/registerScreen.dart';
+import 'package:sri_chandra_jewel/Screens/registerScreen.dart';
 import 'otp_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -28,7 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     final url = Uri.parse(
-      'http://pheonixconstructions.com/mobile/login.php?mobile=$mobile',
+      'https://afosindia.com/mobile/login.php?mobile=$mobile',
     );
 
     try {

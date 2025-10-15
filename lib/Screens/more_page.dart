@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:jewellery/Screens/login_screen.dart';
+import 'package:sri_chandra_jewel/Screens/login_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MorePage extends StatelessWidget {

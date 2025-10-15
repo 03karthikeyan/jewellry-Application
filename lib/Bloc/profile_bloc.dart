@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
-import 'package:jewellery/Event/profile_event.dart';
-import 'package:jewellery/Model/profile_model.dart';
-import 'package:jewellery/State/profile_state.dart';
+import 'package:sri_chandra_jewel/Event/profile_event.dart';
+import 'package:sri_chandra_jewel/Model/profile_model.dart';
+import 'package:sri_chandra_jewel/State/profile_state.dart';
 
 class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   ProfileBloc() : super(ProfileInitial()) {
@@ -12,7 +12,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       try {
         final response = await http.get(
           Uri.parse(
-            "https://pheonixconstructions.com/mobile/profileFetch.php?user_id=${event.userId}",
+            "https://afosindia.com/mobile/profileFetch.php?user_id=${event.userId}",
           ),
         );
         print("Response body: ${response.body}");

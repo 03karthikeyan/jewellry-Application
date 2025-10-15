@@ -2,7 +2,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:jewellery/Model/address_Model.dart';
+import 'package:sri_chandra_jewel/Model/address_Model.dart';
 
 class OrderSummaryPage extends StatefulWidget {
   final Map<String, dynamic> productDetails;
@@ -42,7 +42,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     try {
       final response = await http.get(
         Uri.parse(
-          'https://pheonixconstructions.com/mobile/getAddress.php?user_id=${widget.userId}',
+          'https://afosindia.com/mobile/getAddress.php?user_id=${widget.userId}',
         ),
       );
 
@@ -83,7 +83,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   Future<void> _addAddress(Map<String, String> addressData) async {
     try {
       final url =
-          'https://pheonixconstructions.com/mobile/addAddress.php'
+          'https://afosindia.com/mobile/addAddress.php'
           '?user_id=${widget.userId}'
           '&door_no=${Uri.encodeComponent(addressData['doorNo'] ?? '')}'
           '&street_name=${Uri.encodeComponent(addressData['streetName'] ?? '')}'
@@ -134,7 +134,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     );
     if (result != null) {
       final url =
-          'https://pheonixconstructions.com/mobile/editAddress.php'
+          'https://afosindia.com/mobile/editAddress.php'
           '?id=${address.id}'
           '&door_no=${Uri.encodeComponent(result['doorNo'] ?? '')}'
           '&street_name=${Uri.encodeComponent(result['streetName'] ?? '')}'
@@ -182,8 +182,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   }
 
   Future<void> _deleteAddress(String id) async {
-    final url =
-        'https://pheonixconstructions.com/mobile/deleteAddress.php?id=$id';
+    final url = 'https://afosindia.com/mobile/deleteAddress.php?id=$id';
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
       ScaffoldMessenger.of(
@@ -226,7 +225,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     final String cartId = widget.cartId;
 
     final url =
-        'https://pheonixconstructions.com/mobile/placeOrder.php?user_id=${widget.userId}'
+        'https://afosindia.com/mobile/placeOrder.php?user_id=${widget.userId}'
         '&grandtotal=$grandTotal'
         '&address_id=$addressId'
         '&cart_id=$cartId';
@@ -587,7 +586,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                           color: Colors.grey[100],
                         ),
                         child: Image.asset(
-                          'assets/qr_code.png', 
+                          'assets/qr_code.png',
                           fit: BoxFit.contain,
                         ),
                       ),

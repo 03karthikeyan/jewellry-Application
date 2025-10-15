@@ -48,7 +48,7 @@ class _OtpScreenState extends State<OtpScreen> {
     setState(() => _isVerifying = true);
 
     final url = Uri.parse(
-      'https://pheonixconstructions.com/mobile/otp.php?mobile=${widget.mobile}&otp=$otp',
+      'https://afosindia.com/mobile/otp.php?mobile=${widget.mobile}&otp=$otp',
     );
 
     try {

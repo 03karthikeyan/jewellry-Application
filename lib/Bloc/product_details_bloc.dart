@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
-import 'package:jewellery/Event/product_details_event.dart';
-import 'package:jewellery/Model/product_details_model.dart';
-import 'package:jewellery/State/product_details_state.dart';
+import 'package:sri_chandra_jewel/Event/product_details_event.dart';
+import 'package:sri_chandra_jewel/Model/product_details_model.dart';
+import 'package:sri_chandra_jewel/State/product_details_state.dart';
 
 class ProductDetailsBloc
     extends Bloc<ProductDetailsEvent, ProductDetailsState> {
@@ -19,7 +19,7 @@ class ProductDetailsBloc
       try {
         final response = await http.get(
           Uri.parse(
-            'https://pheonixconstructions.com/mobile/productDetails.php?product_id=${event.productId}',
+            'https://afosindia.com/mobile/productDetails.php?product_id=${event.productId}',
           ),
         );
         final data = jsonDecode(response.body);

@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:jewellery/Screens/login_screen.dart';
-import 'package:jewellery/Screens/orders_page.dart';
+import 'package:sri_chandra_jewel/Screens/login_screen.dart';
+import 'package:sri_chandra_jewel/Screens/orders_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -31,7 +31,7 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       final response = await http.get(
         Uri.parse(
-          'https://pheonixconstructions.com/mobile/profileFetch.php?user_id=$userId',
+          'https://afosindia.com/mobile/profileFetch.php?user_id=$userId',
         ),
       );
 
@@ -191,7 +191,7 @@ class _ProfilePageState extends State<ProfilePage> {
   ) async {
     try {
       final url =
-          'https://pheonixconstructions.com/mobile/profileUpdate.php'
+          'https://afosindia.com/mobile/profileUpdate.php'
           '?user_id=$userId'
           '&firstname=${Uri.encodeComponent(firstName)}'
           '&lastname=${Uri.encodeComponent(lastName)}'

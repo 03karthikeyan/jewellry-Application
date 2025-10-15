@@ -1,4 +1,4 @@
-import 'package:jewellery/Model/banner_Model.dart';
+import 'package:sri_chandra_jewel/Model/banner_Model.dart';
 
 abstract class BannerState {}
 

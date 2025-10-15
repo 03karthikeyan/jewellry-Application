@@ -1,4 +1,4 @@
-import 'package:jewellery/Model/product_Model.dart';
+import 'package:sri_chandra_jewel/Model/product_Model.dart';
 
 abstract class ProductState {}
 

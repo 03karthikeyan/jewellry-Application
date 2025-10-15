@@ -2,27 +2,27 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:jewellery/Bloc/banner_Bloc.dart';
-import 'package:jewellery/Bloc/category_Bloc.dart';
-import 'package:jewellery/Event/banner_Event.dart';
-import 'package:jewellery/Event/category_Event.dart';
-import 'package:jewellery/Model/banner_Model.dart';
-import 'package:jewellery/Model/recently_AddedProducts_Model.dart';
-import 'package:jewellery/Screens/category_page.dart';
-import 'package:jewellery/Screens/details_page.dart';
-import 'package:jewellery/Screens/diamond_jewellery_page.dart';
-import 'package:jewellery/Screens/earrings_page.dart';
-import 'package:jewellery/Screens/gold_jewellery_page.dart';
-import 'package:jewellery/Screens/login_screen.dart';
-import 'package:jewellery/Screens/necklaces_page.dart';
-import 'package:jewellery/Screens/orders_page.dart';
-import 'package:jewellery/Screens/productList_Page.dart';
-import 'package:jewellery/Screens/profile_page.dart';
-import 'package:jewellery/Screens/rings_page.dart';
-import 'package:jewellery/Screens/shimmer_Loader.dart';
-import 'package:jewellery/Screens/silver_jewellery_page.dart';
-import 'package:jewellery/State/banner_State.dart';
-import 'package:jewellery/State/category_State.dart';
+import 'package:sri_chandra_jewel/Bloc/banner_Bloc.dart';
+import 'package:sri_chandra_jewel/Bloc/category_Bloc.dart';
+import 'package:sri_chandra_jewel/Event/banner_Event.dart';
+import 'package:sri_chandra_jewel/Event/category_Event.dart';
+import 'package:sri_chandra_jewel/Model/banner_Model.dart';
+import 'package:sri_chandra_jewel/Model/recently_AddedProducts_Model.dart';
+import 'package:sri_chandra_jewel/Screens/category_page.dart';
+import 'package:sri_chandra_jewel/Screens/details_page.dart';
+import 'package:sri_chandra_jewel/Screens/diamond_jewellery_page.dart';
+import 'package:sri_chandra_jewel/Screens/earrings_page.dart';
+import 'package:sri_chandra_jewel/Screens/gold_jewellery_page.dart';
+import 'package:sri_chandra_jewel/Screens/login_screen.dart';
+import 'package:sri_chandra_jewel/Screens/necklaces_page.dart';
+import 'package:sri_chandra_jewel/Screens/orders_page.dart';
+import 'package:sri_chandra_jewel/Screens/productList_Page.dart';
+import 'package:sri_chandra_jewel/Screens/profile_page.dart';
+import 'package:sri_chandra_jewel/Screens/rings_page.dart';
+import 'package:sri_chandra_jewel/Screens/shimmer_Loader.dart';
+import 'package:sri_chandra_jewel/Screens/silver_jewellery_page.dart';
+import 'package:sri_chandra_jewel/State/banner_State.dart';
+import 'package:sri_chandra_jewel/State/category_State.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'dart:async';
@@ -55,10 +55,10 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _startBannerAutoSlide(_bannerImages.length);
 
     context.read<CategoryBloc>().add(FetchCategoryEvent());
     context.read<BannerBloc>().add(FetchBannerEvent());
+    _startBannerAutoSlide(_bannerImages.length);
 
     _loadRecentlyAddedProducts();
   }
@@ -112,7 +112,7 @@ class _HomePageState extends State<HomePage> {
   Future<List<RecentlyAddedProduct>> fetchRecentlyAddedProducts() async {
     final response = await http.get(
       Uri.parse(
-        'https://pheonixconstructions.com/mobile/recentlyAddedProduct.php',
+        'https://afosindia.com/mobile/recentlyAddedProduct.php',
       ),
     );
 

@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:jewellery/Model/address_Model.dart';
-import 'package:jewellery/Screens/orderSummary_Page.dart';
+import 'package:sri_chandra_jewel/Model/address_Model.dart';
+import 'package:sri_chandra_jewel/Screens/orderSummary_Page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class DetailsPage extends StatefulWidget {
@@ -33,6 +33,12 @@ class _DetailsPageState extends State<DetailsPage> {
     fetchProductDetails();
   }
 
+  String _getImageUrl(String url) {
+    if (url.startsWith('http')) return url;
+    if (url.isEmpty) return widget.imagePath;
+    return 'https://pheonixconstructions.com/assets/images/product_image/$url';
+  }
+
   Future<void> _loadUserId() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -46,7 +52,7 @@ class _DetailsPageState extends State<DetailsPage> {
       String cleanProductId = widget.productId.replaceAll('"', '');
 
       final url =
-          'https://pheonixconstructions.com/mobile/productDetails.php?product_id=$cleanProductId';
+          'https://afosindia.com/mobile/productDetails.php?product_id=$cleanProductId';
 
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -328,7 +334,7 @@ class _DetailsPageState extends State<DetailsPage> {
     try {
       String cleanProductId = widget.productId.replaceAll('"', '');
       final url =
-          'https://pheonixconstructions.com/mobile/checkWishlist.php?user_id=$userId&product_id=$cleanProductId';
+          'https://afosindia.com/mobile/checkWishlist.php?user_id=$userId&product_id=$cleanProductId';
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -354,8 +360,8 @@ class _DetailsPageState extends State<DetailsPage> {
       String cleanProductId = widget.productId.replaceAll('"', '');
       final url =
           isInWishlist
-              ? 'https://pheonixconstructions.com/mobile/wishlistRemove.php?user_id=$userId&product_id=$cleanProductId'
-              : 'https://pheonixconstructions.com/mobile/wishlistAdd.php?user_id=$userId&product_id=$cleanProductId';
+              ? 'https://afosindia.com/mobile/wishlistRemove.php?user_id=$userId&product_id=$cleanProductId'
+              : 'https://afosindia.com/mobile/wishlistAdd.php?user_id=$userId&product_id=$cleanProductId';
 
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -451,7 +457,7 @@ class _DetailsPageState extends State<DetailsPage> {
           (double.tryParse(unitPrice) ?? 0) - makingRate - wastageRate;
 
       final url =
-          'https://pheonixconstructions.com/mobile/addToCart.php'
+          'https://afosindia.com/mobile/addToCart.php'
           '?user_id=$userId'
           '&product_id=$cleanProductId'
           '&quantity=1'
@@ -586,7 +592,7 @@ class _DetailsPageState extends State<DetailsPage> {
             ),
             DataCell(
               Text(
-                '${(m['weight'] ?? 0).toStringAsFixed(2)} x 1',
+                '${(m['weight'] ?? 0).toStringAsFixed(2)}',
                 textAlign: TextAlign.right,
               ),
             ),
@@ -621,7 +627,7 @@ class _DetailsPageState extends State<DetailsPage> {
             ),
             DataCell(
               Text(
-                '${(s['weight'] ?? 0).toStringAsFixed(2)} x 1',
+                '${(s['weight'] ?? 0).toStringAsFixed(2)}',
                 textAlign: TextAlign.right,
               ),
             ),
@@ -1018,7 +1024,9 @@ class _DetailsPageState extends State<DetailsPage> {
               SizedBox(height: 32),
               Center(
                 child: Image.network(
-                  productDetails!['image_url'] ?? widget.imagePath,
+                  _getImageUrl(
+                    productDetails!['image_url'] ?? widget.imagePath,
+                  ),
                   height: 250,
                   fit: BoxFit.contain,
                   errorBuilder:
@@ -1171,6 +1179,12 @@ class _DetailsPageState extends State<DetailsPage> {
                       ),
                       SizedBox(height: 8),
                       ...(productDetails!['stones'] as List).map((stone) {
+                        double weight = 0;
+                        if (stone['weight'] is String) {
+                          weight = double.tryParse(stone['weight']) ?? 0;
+                        } else if (stone['weight'] is num) {
+                          weight = (stone['weight'] as num).toDouble();
+                        }
                         return Padding(
                           padding: EdgeInsets.symmetric(vertical: 2),
                           child: Row(
@@ -1189,7 +1203,7 @@ class _DetailsPageState extends State<DetailsPage> {
                               Expanded(
                                 flex: 1,
                                 child: Text(
-                                  '${(stone['weight'] ?? 0).toStringAsFixed(2)}g',
+                                  '${weight.toStringAsFixed(2)}g',
                                   style: TextStyle(
                                     fontSize: 13,
                                     color: Colors.black87,

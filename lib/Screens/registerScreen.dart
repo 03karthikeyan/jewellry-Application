@@ -55,7 +55,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       // Correctly construct full GET URI
       final uri = Uri.parse(
-        'https://pheonixconstructions.com/mobile/userRegister.php',
+        'https://afosindia.com/mobile/userRegister.php',
       ).replace(queryParameters: queryParams);
 
       final response = await http.get(uri);

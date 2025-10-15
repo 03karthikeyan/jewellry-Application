@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:jewellery/Screens/order_details_page.dart';
+import 'package:sri_chandra_jewel/Screens/order_details_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class OrdersPage extends StatefulWidget {
@@ -75,7 +75,7 @@ class _OrdersPageState extends State<OrdersPage>
     try {
       final response = await http.get(
         Uri.parse(
-          'https://pheonixconstructions.com/mobile/fetchCartDetails.php?user_id=$userId',
+          'https://afosindia.com/mobile/fetchCartDetails.php?user_id=$userId',
         ),
       );
       print(
@@ -103,7 +103,7 @@ class _OrdersPageState extends State<OrdersPage>
   Future<void> _deleteCartItem(String cartId) async {
     try {
       final url =
-          'https://pheonixconstructions.com/mobile/cartDelete.php?user_id=$userId&cart_id=$cartId';
+          'https://afosindia.com/mobile/cartDelete.php?user_id=$userId&cart_id=$cartId';
       print('Delete cart item URL: $url');
 
       final response = await http.get(Uri.parse(url));
@@ -139,7 +139,7 @@ class _OrdersPageState extends State<OrdersPage>
   Future<void> _clearAllCart() async {
     try {
       final url =
-          'https://pheonixconstructions.com/mobile/cartDeleteAll.php?user_id=$userId';
+          'https://afosindia.com/mobile/cartDeleteAll.php?user_id=$userId';
       print('Clear all cart URL: $url');
 
       final response = await http.get(Uri.parse(url));
@@ -176,7 +176,7 @@ class _OrdersPageState extends State<OrdersPage>
     try {
       final response = await http.get(
         Uri.parse(
-          'https://pheonixconstructions.com/mobile/wishlistFetch.php?user_id=$userId',
+          'https://afosindia.com/mobile/wishlistFetch.php?user_id=$userId',
         ),
       );
       if (response.statusCode == 200) {
@@ -196,7 +196,7 @@ class _OrdersPageState extends State<OrdersPage>
   Future<void> _removeWishlistItem(String productId) async {
     try {
       final url =
-          'https://pheonixconstructions.com/mobile/wishlistRemove.php?user_id=$userId&product_id=$productId';
+          'https://afosindia.com/mobile/wishlistRemove.php?user_id=$userId&product_id=$productId';
       print('Remove wishlist item URL: $url');
 
       final response = await http.get(Uri.parse(url));
@@ -243,9 +243,7 @@ class _OrdersPageState extends State<OrdersPage>
   Future<void> fetchOrders() async {
     try {
       final response = await http.get(
-        Uri.parse(
-          'https://pheonixconstructions.com/mobile/myOrders.php?user_id=$userId',
-        ),
+        Uri.parse('https://afosindia.com/mobile/myOrders.php?user_id=$userId'),
       );
 
       if (response.statusCode == 200) {
@@ -380,7 +378,7 @@ class _OrdersPageState extends State<OrdersPage>
             final product = order['product_details'] ?? {};
             final imageUrl =
                 product['image'] != null
-                    ? 'https://pheonixconstructions.com/admin/uploads/${product['image']}'
+                    ? 'https://afosindia.com/mobile/admin/uploads/${product['image']}'
                     : '';
 
             return GestureDetector(

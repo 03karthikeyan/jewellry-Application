@@ -2,15 +2,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:jewellery/Bloc/category_Bloc.dart';
-import 'package:jewellery/Event/category_Event.dart';
+import 'package:sri_chandra_jewel/Bloc/category_Bloc.dart';
+import 'package:sri_chandra_jewel/Event/category_Event.dart';
 import 'dart:io';
 // import 'package:jewellery/Screens/earrings_page.dart';
 // import 'package:jewellery/Screens/necklaces_page.dart';
-import 'package:jewellery/Screens/productList_Page.dart';
-import 'package:jewellery/Screens/shimmer_Loader.dart';
+import 'package:sri_chandra_jewel/Screens/productList_Page.dart';
+import 'package:sri_chandra_jewel/Screens/shimmer_Loader.dart';
 // import 'package:jewellery/Screens/rings_page.dart';
-import 'package:jewellery/State/category_State.dart';
+import 'package:sri_chandra_jewel/State/category_State.dart';
 
 class CategoryPage extends StatefulWidget {
   // final String categoryId;
