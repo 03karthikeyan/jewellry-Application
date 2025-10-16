@@ -160,7 +160,7 @@ class _ProductListPageState extends State<ProductListPage> {
                                     top: Radius.circular(16),
                                   ),
                                   child: Image.network(
-                                    "https://pheonixconstructions.com/assets/images/product_image/${product.image}",
+                                    "https://afosindia.com/mobile/assets/images/product_image/${product.image}",
                                     height: 140,
                                     width: double.infinity,
                                     fit: BoxFit.cover,

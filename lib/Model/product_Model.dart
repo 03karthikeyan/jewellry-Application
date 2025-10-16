@@ -10,7 +10,7 @@ class ProductModel {
       id: json['id'],
       name: json['pname'],
       image:
-          'https://pheonixconstructions.com/assets/images/product_image/${json['pimage']}',
+          'https://afosindia.com/mobile/assets/images/product_image/${json['pimage']}',
     );
   }
 }

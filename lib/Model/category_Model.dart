@@ -9,7 +9,7 @@ class CategoryModel {
     return CategoryModel(
       id: json['id'],
       title: json['title'],
-      image: 'https://pheonixconstructions.com/' + json['image'],
+      image: 'https://afosindia.com/mobile/' + json['image'],
     );
   }
 }

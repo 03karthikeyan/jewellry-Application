@@ -36,7 +36,7 @@ class _DetailsPageState extends State<DetailsPage> {
   String _getImageUrl(String url) {
     if (url.startsWith('http')) return url;
     if (url.isEmpty) return widget.imagePath;
-    return 'https://pheonixconstructions.com/assets/images/product_image/$url';
+    return 'https://afosindia.com/mobile/assets/images/product_image/$url';
   }
 
   Future<void> _loadUserId() async {
