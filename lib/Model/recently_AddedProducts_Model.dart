@@ -14,13 +14,21 @@ class RecentlyAddedProduct {
   });
 
   factory RecentlyAddedProduct.fromJson(Map<String, dynamic> json) {
-  return RecentlyAddedProduct(
-    id: json['id'],
-    pname: json['pname'],
-    pimage: 'https://afosindia.com/mobile/' + json['pimage'], // ✅ prepend base URL
-    manufacturedBy: json['manufactured_by'],
-    inWishlist: json['in_wishlist'] ?? false,
-  );
-}
+    // ⚡ Fix: Use correct folder for product images
+    String imageUrl = 'https://afosindia.com/mobile/assets/images/product_image/${json['pimage']}';
 
+    // Optional: remove extra slashes if server sends them
+    imageUrl = imageUrl.replaceAll('//', '/');
+    if (!imageUrl.startsWith('https://')) {
+      imageUrl = 'https://afosindia.com/$imageUrl';
+    }
+
+    return RecentlyAddedProduct(
+      id: json['id'],
+      pname: json['pname'],
+      pimage: imageUrl,
+      manufacturedBy: json['manufactured_by'] ?? '',
+      inWishlist: json['in_wishlist'] ?? false,
+    );
+  }
 }
