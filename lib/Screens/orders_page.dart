@@ -111,12 +111,18 @@ class _OrdersPageState extends State<OrdersPage>
 
       if (response.statusCode == 200) {
         final responseBody = response.body.trim().toLowerCase();
+
         if (responseBody.contains('success')) {
+          // 🧠 Immediately remove from local list before API refetch
+          setState(() {
+            cart.removeWhere((item) => item['cart_id'].toString() == cartId);
+          });
+
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text('Item removed from cart')));
 
-          // ✅ Refresh cart
+          // 🔁 Then refetch to ensure server sync
           await fetchCart();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -147,13 +153,19 @@ class _OrdersPageState extends State<OrdersPage>
 
       if (response.statusCode == 200) {
         final responseBody = response.body.trim().toLowerCase();
+
         if (responseBody.contains('success')) {
+          // 🧠 Instantly clear local list
+          setState(() {
+            cart.clear();
+          });
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('All items removed from cart')),
           );
 
-          // ✅ Refresh cart
-          await fetchCart();
+          // 🔁 Re-fetch in background for sync (optional)
+          fetchCart();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('API Response: $responseBody')),
@@ -205,20 +217,32 @@ class _OrdersPageState extends State<OrdersPage>
       );
 
       if (response.statusCode == 200) {
-        final responseBody = response.body.trim();
-        if (responseBody.contains('success') ||
-            responseBody.contains('Success') ||
-            responseBody == 'Success') {
+        final responseBody = response.body.trim().toLowerCase();
+
+        if (responseBody.contains('success')) {
+          // ✅ Instantly update UI (remove from local list)
+          setState(() {
+            wishlist.removeWhere(
+              (item) =>
+                  item['product_id']?.toString() == productId ||
+                  item['id']?.toString() == productId,
+            );
+          });
+
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text('Item removed from wishlist')));
-          await fetchWishlist();
-        } else if (responseBody.toLowerCase().contains('not in wishlist') ||
-            responseBody.toLowerCase().contains('already removed')) {
-          // Item was already removed from database, remove from UI
+        } else if (responseBody.contains('not in wishlist') ||
+            responseBody.contains('already removed')) {
+          // ✅ Same UI update for already removed
           setState(() {
-            wishlist.removeWhere((item) => item['id']?.toString() == productId);
+            wishlist.removeWhere(
+              (item) =>
+                  item['product_id']?.toString() == productId ||
+                  item['id']?.toString() == productId,
+            );
           });
+
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text('Item removed from wishlist')));
@@ -501,7 +525,12 @@ class _OrdersPageState extends State<OrdersPage>
         );
   }
 
+  bool _isLoading = false;
+
   Widget _buildCartTab() {
+    if (_isLoading) {
+      return Center(child: CircularProgressIndicator(color: Colors.brown));
+    }
     return cart.isEmpty
         ? Center(
           child: Column(

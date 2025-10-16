@@ -20,7 +20,6 @@ import 'package:sri_chandra_jewel/Screens/productList_Page.dart';
 import 'package:sri_chandra_jewel/Screens/profile_page.dart';
 import 'package:sri_chandra_jewel/Screens/rings_page.dart';
 import 'package:sri_chandra_jewel/Screens/shimmer_Loader.dart';
-import 'package:sri_chandra_jewel/Screens/silver_jewellery_page.dart';
 import 'package:sri_chandra_jewel/State/banner_State.dart';
 import 'package:sri_chandra_jewel/State/category_State.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -111,9 +110,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<List<RecentlyAddedProduct>> fetchRecentlyAddedProducts() async {
     final response = await http.get(
-      Uri.parse(
-        'https://afosindia.com/mobile/recentlyAddedProduct.php',
-      ),
+      Uri.parse('https://afosindia.com/mobile/recentlyAddedProduct.php'),
     );
 
     if (response.statusCode == 200) {
@@ -123,7 +120,7 @@ class _HomePageState extends State<HomePage> {
         return list.map((item) => RecentlyAddedProduct.fromJson(item)).toList();
       }
     }
-    throw Exception('Failed to load products');
+    throw Exception('Network issue to load products');
   }
 
   @override
@@ -251,8 +248,8 @@ class _HomePageState extends State<HomePage> {
                     builder: (context, state) {
                       if (state is CategoryLoading) {
                         return SizedBox(
-                          height: 120, // ✅ reserve space
-                          child: ShimmerLoadingFilter(),
+                          height: 100, // ✅ reserve space
+                          child: ShimmerLoadingCategory(),
                         );
                       } else if (state is CategoryLoaded) {
                         return SingleChildScrollView(
@@ -420,12 +417,11 @@ class BannerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(2),
+      borderRadius: BorderRadius.circular(4),
       child: SizedBox.expand(
         child: Image.network(
           imagePath,
           fit: BoxFit.fill,
-          alignment: Alignment.center,
           errorBuilder:
               (context, error, stackTrace) => Container(
                 color: Colors.grey[200],
@@ -442,10 +438,11 @@ class CategoryItem extends StatelessWidget {
   final String imagePath;
   final String categoryId;
 
-  CategoryItem({
+  const CategoryItem({
     required this.title,
     required this.imagePath,
     required this.categoryId,
+    super.key,
   });
 
   @override
@@ -462,9 +459,28 @@ class CategoryItem extends StatelessWidget {
       },
       child: Column(
         children: [
-          CircleAvatar(radius: 40, backgroundImage: AssetImage(imagePath)),
-          SizedBox(height: 8),
-          Text(title, style: TextStyle(fontSize: 14, color: Colors.brown)),
+          CircleAvatar(
+            radius: 40,
+            backgroundColor: Colors.grey[200],
+            backgroundImage: NetworkImage(imagePath),
+            onBackgroundImageError: (_, __) {
+              // Handles broken image gracefully
+            },
+            child:
+                imagePath.isEmpty
+                    ? Icon(Icons.broken_image, size: 40, color: Colors.brown)
+                    : null,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.brown,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
@@ -555,7 +571,7 @@ class ProductCard extends StatelessWidget {
                           width: double.infinity,
                           color: Colors.grey[200],
                           child: Icon(
-                            Icons.image,
+                            Icons.broken_image,
                             size: 80,
                             color: Colors.grey,
                           ),

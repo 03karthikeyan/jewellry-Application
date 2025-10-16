@@ -14,12 +14,13 @@ class RecentlyAddedProduct {
   });
 
   factory RecentlyAddedProduct.fromJson(Map<String, dynamic> json) {
-    return RecentlyAddedProduct(
-      id: json['id'],
-      pname: json['pname'],
-      pimage: json['pimage'],
-      manufacturedBy: json['manufactured_by'],
-      inWishlist: json['in_wishlist'] ?? false,
-    );
-  }
+  return RecentlyAddedProduct(
+    id: json['id'],
+    pname: json['pname'],
+    pimage: 'https://afosindia.com/mobile/' + json['pimage'], // ✅ prepend base URL
+    manufacturedBy: json['manufactured_by'],
+    inWishlist: json['in_wishlist'] ?? false,
+  );
+}
+
 }

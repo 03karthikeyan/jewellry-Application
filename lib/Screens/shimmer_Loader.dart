@@ -20,6 +20,55 @@ class ShimmerLoading extends StatelessWidget {
   }
 }
 
+class ShimmerLoadingCategory extends StatelessWidget {
+  const ShimmerLoadingCategory({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 90, // Height for horizontal avatar list
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal, // 👈 Horizontal scroll
+        itemCount: 8,
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Shimmer.fromColors(
+              baseColor: Colors.grey.shade400, // 🩶 Silver base tone
+              highlightColor: Colors.grey.shade100, // 💫 Soft light shimmer
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // 🟣 Circular avatar shimmer
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // 🩶 Text shimmer below avatar
+                  Container(
+                    width: 50,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
 class ShimmerLoadingFilter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {

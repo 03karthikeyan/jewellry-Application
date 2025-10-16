@@ -7,17 +7,20 @@ class BannerModel {
   factory BannerModel.fromJson(Map<String, dynamic> json) {
     String rawImage = json['image'] ?? '';
 
-    // 🧠 Fix duplicate 'banner_image/assets' if it exists
-    String fixedImage = rawImage.replaceAll(
+    // Remove accidental duplicated folder paths
+    String cleanedImage = rawImage.replaceAll(
       'assets/banner_image/assets/',
-      'assets/',
+      'assets/banner_image/',
     );
 
-    // 🧩 Ensure correct base URL
-    if (!fixedImage.startsWith('http')) {
-      fixedImage = 'https://afosindia.com/mobile/$fixedImage';
+    // ✅ Prepend base URL if it's a relative path
+    if (!cleanedImage.startsWith('http')) {
+      cleanedImage = 'https://afosindia.com/mobile/$cleanedImage';
     }
 
-    return BannerModel(title: json['title'] ?? '', image: fixedImage);
+    return BannerModel(
+      title: json['title'] ?? '',
+      image: cleanedImage,
+    );
   }
 }
