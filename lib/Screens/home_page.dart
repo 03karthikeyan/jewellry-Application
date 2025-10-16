@@ -179,8 +179,8 @@ class _HomePageState extends State<HomePage> {
                   builder: (context, state) {
                     if (state is BannerLoading) {
                       return SizedBox(
-                        height: 200,
-                        child: ShimmerLoadingFilter(), // shimmer for banner
+                        height: 100,
+                        child: ShimmerLoadingBanner(), // shimmer for banner
                       );
                     } else if (state is BannerLoaded) {
                       final banners = state.banners;

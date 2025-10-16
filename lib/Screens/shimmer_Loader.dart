@@ -69,6 +69,38 @@ class ShimmerLoadingCategory extends StatelessWidget {
   }
 }
 
+
+class ShimmerLoadingBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 180, // height of your banner
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: 5, // number of shimmer banners
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: Shimmer.fromColors(
+              baseColor: Colors.grey.shade300, // silver base
+              highlightColor: Colors.grey.shade100, // lighter highlight
+              child: Container(
+                width: 300, // width of each banner
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+
 class ShimmerLoadingFilter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
