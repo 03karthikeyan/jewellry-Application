@@ -15,7 +15,8 @@ class RecentlyAddedProduct {
 
   factory RecentlyAddedProduct.fromJson(Map<String, dynamic> json) {
     // ⚡ Fix: Use correct folder for product images
-    String imageUrl = 'https://afosindia.com/mobile/assets/images/product_image/${json['pimage']}';
+    String imageUrl =
+        'https://pheonixconstructions.com/jew/beta/assets/images/product_image/${json['pimage']}';
 
     // Optional: remove extra slashes if server sends them
     imageUrl = imageUrl.replaceAll('//', '/');

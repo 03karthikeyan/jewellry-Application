@@ -5,19 +5,16 @@ class BannerModel {
   BannerModel({required this.title, required this.image});
 
   factory BannerModel.fromJson(Map<String, dynamic> json) {
-    String imageUrl = json['image'] ?? '';
+    String rawImage = json['image'] ?? '';
 
-    // Decode escaped slashes if any
-    imageUrl = imageUrl.replaceAll(r'\/', '/');
+    // Convert escaped slashes from API response (e.g. https:\/\/...)
+    rawImage = rawImage.replaceAll(r'\/', '/');
 
-    // If the URL is relative, prepend the base URL
-    if (!imageUrl.startsWith('http')) {
-      imageUrl = 'https://pheonixconstructions.com/$imageUrl';
+    // Ensure full valid URL
+    if (!rawImage.startsWith('http')) {
+      rawImage = 'https://pheonixconstructions.com/$rawImage';
     }
 
-    return BannerModel(
-      title: json['title'] ?? '',
-      image: imageUrl,
-    );
+    return BannerModel(title: json['title'] ?? '', image: rawImage.trim());
   }
 }

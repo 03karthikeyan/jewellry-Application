@@ -15,10 +15,15 @@ class ProductModel {
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
     const String baseUrl =
-        "https://afosindia.com/mobile/assets/images/product_image/";
+        "https://pheonixconstructions.com/jew/beta/assets/images/product_image/";
+
     String imagePath = json['pimage'] ?? '';
 
-    // If it's not already a full URL, prepend the base URL
+    // Clean unwanted slashes or duplicate parts
+    imagePath = imagePath.replaceAll(r'\', '/');
+    imagePath = imagePath.replaceAll(RegExp(r'^/+'), '');
+
+    // If imagePath is not full URL, prepend base URL
     if (!imagePath.startsWith('http')) {
       imagePath = baseUrl + imagePath;
     }
@@ -28,7 +33,10 @@ class ProductModel {
       name: json['pname'] ?? '',
       image: imagePath,
       manufacturedBy: json['manufactured_by'] ?? '',
-      inWishlist: json['in_wishlist'] == true || json['in_wishlist'] == 'true',
+      inWishlist:
+          json['in_wishlist'] == true ||
+          json['in_wishlist'] == 'true' ||
+          json['in_wishlist'] == 1,
     );
   }
 }

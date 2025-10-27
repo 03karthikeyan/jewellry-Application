@@ -20,7 +20,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     try {
       final response = await http.get(
         Uri.parse(
-          'https://afosindia.com/mobile/productList.php?category_id=${event.categoryId}',
+          'https://pheonixconstructions.com/mobile/productList.php?category_id=${event.categoryId}',
         ),
       );
 

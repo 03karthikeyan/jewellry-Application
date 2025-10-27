@@ -19,7 +19,7 @@ class BannerBloc extends Bloc<BannerEvent, BannerState> {
 
     try {
       final response = await http.get(
-        Uri.parse('https://afosindia.com/mobile/bannerList.php'),
+        Uri.parse('https://pheonixconstructions.com/mobile/bannerList.php'),
       );
 
       if (response.statusCode == 200) {

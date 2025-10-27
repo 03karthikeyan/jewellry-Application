@@ -12,7 +12,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       try {
         final response = await http.get(
           Uri.parse(
-            "https://afosindia.com/mobile/profileFetch.php?user_id=${event.userId}",
+            "https://pheonixconstructions.com/mobile/profileFetch.php?user_id=${event.userId}",
           ),
         );
         print("Response body: ${response.body}");

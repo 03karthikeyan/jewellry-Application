@@ -69,6 +69,7 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _autoSlideTimer?.cancel();
     _pageController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -134,7 +135,9 @@ class _HomePageState extends State<HomePage> {
 
   Future<List<RecentlyAddedProduct>> fetchRecentlyAddedProducts() async {
     final response = await http.get(
-      Uri.parse('https://afosindia.com/mobile/recentlyAddedProduct.php'),
+      Uri.parse(
+        'https://pheonixconstructions.com/mobile/recentlyAddedProduct.php',
+      ),
     );
 
     if (response.statusCode == 200) {
@@ -365,7 +368,9 @@ class _HomePageState extends State<HomePage> {
                       child: GridView.builder(
                         shrinkWrap: true,
                         physics: NeverScrollableScrollPhysics(),
-                        itemCount: _recentProducts!.length,
+                        itemCount:
+                            _filteredProducts
+                                .length, // ✅ Use filtered list here
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
                           crossAxisSpacing: 10,
@@ -373,7 +378,8 @@ class _HomePageState extends State<HomePage> {
                           childAspectRatio: 0.72,
                         ),
                         itemBuilder: (context, index) {
-                          final product = _recentProducts![index];
+                          final product =
+                              _filteredProducts[index]; // ✅ Use filtered list here
                           return ProductCard(
                             name: product.pname ?? 'No Name',
                             imageUrl: product.pimage ?? '',
@@ -394,31 +400,53 @@ class _HomePageState extends State<HomePage> {
               top: 0,
               left: 0,
               right: 0,
-              child: Container(
-                color: Colors.white,
-                padding: EdgeInsets.all(16.0),
-                child: TextField(
-                  controller: _searchController,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: Colors.grey.shade200,
-                    hintText: 'Search for jewellery',
-                    prefixIcon: Icon(Icons.search, color: Colors.brown),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30),
-                      borderSide: BorderSide.none,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) {
+                      _filterProducts(value);
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Search for products...',
+                      hintStyle: const TextStyle(
+                        color: Colors.grey,
+                        fontSize: 15,
+                      ),
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      suffixIcon:
+                          _searchController.text.isNotEmpty
+                              ? IconButton(
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: Colors.grey,
+                                ),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  _filterProducts('');
+                                },
+                              )
+                              : null,
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                   ),
-                  onChanged: (value) {
-                    _filterProducts(value); // ✅ live search filtering
-                  },
-                  onSubmitted: (value) {
-                    _filterProducts(value);
-                    setState(() {
-                      _isSearchActive = false;
-                    });
-                  },
                 ),
               ),
             ),
@@ -782,6 +810,7 @@ class _AnimatedSectionState extends State<AnimatedSection>
   @override
   void dispose() {
     _controller.dispose();
+
     super.dispose();
   }
 }

@@ -19,7 +19,7 @@ class ProductDetailsBloc
       try {
         final response = await http.get(
           Uri.parse(
-            'https://afosindia.com/mobile/productDetails.php?product_id=${event.productId}',
+            'https://pheonixconstructions.com/mobile/productDetails.php?product_id=${event.productId}',
           ),
         );
         final data = jsonDecode(response.body);
