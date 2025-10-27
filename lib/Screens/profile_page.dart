@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:sri_chandra_jewel/Screens/login_screen.dart';
 import 'package:sri_chandra_jewel/Screens/orders_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class ProfilePage extends StatefulWidget {
   @override
@@ -51,6 +52,17 @@ class _ProfilePageState extends State<ProfilePage> {
         isLoading = false;
       });
     }
+  }
+
+  void _showToast() {
+    Fluttertoast.showToast(
+      msg: "🚀 Coming Soon! This feature is under development.",
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.brown,
+      textColor: Colors.white,
+      fontSize: 14.0,
+    );
   }
 
   void _showEditProfileDialog() {
@@ -320,13 +332,13 @@ class _ProfilePageState extends State<ProfilePage> {
                             title: 'Edit Profile',
                             onTap: () => _showEditProfileDialog(),
                           ),
-                          ProfileOptionCard(
-                            icon: Icons.lock,
-                            title: 'Change Password',
-                            onTap: () {
-                              // Navigate to Change Password Page
-                            },
-                          ),
+                          // ProfileOptionCard(
+                          //   icon: Icons.lock,
+                          //   title: 'Change Password',
+                          //   onTap: () {
+                          //     // Navigate to Change Password Page
+                          //   },
+                          // ),
                           ProfileOptionCard(
                             icon: Icons.history,
                             title: 'Order History',
@@ -347,16 +359,12 @@ class _ProfilePageState extends State<ProfilePage> {
                           ProfileOptionCard(
                             icon: Icons.notifications,
                             title: 'Notifications',
-                            onTap: () {
-                              // Navigate to Notifications Settings
-                            },
+                            onTap: _showToast,
                           ),
                           ProfileOptionCard(
                             icon: Icons.settings,
                             title: 'Account Settings',
-                            onTap: () {
-                              // Navigate to Account Settings Page
-                            },
+                            onTap: _showToast,
                           ),
                         ],
                       ),

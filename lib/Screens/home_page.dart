@@ -43,6 +43,9 @@ class _HomePageState extends State<HomePage> {
   List<RecentlyAddedProduct>? _recentProducts;
   bool _isLoadingProducts = true;
 
+  List<RecentlyAddedProduct> _filteredProducts = [];
+  TextEditingController _searchController = TextEditingController();
+
   // final List<String> _bannerImages = [
   //   'assets/banner1.webp',
   //   'assets/banner2.webp',
@@ -98,14 +101,35 @@ class _HomePageState extends State<HomePage> {
       final products = await fetchRecentlyAddedProducts();
       setState(() {
         _recentProducts = products;
+        _filteredProducts = products;
         _isLoadingProducts = false;
       });
     } catch (e) {
       setState(() {
         _recentProducts = [];
+        _filteredProducts = [];
         _isLoadingProducts = false;
       });
     }
+  }
+
+  void _filterProducts(String query) {
+    if (_recentProducts == null) return;
+
+    setState(() {
+      if (query.isEmpty) {
+        _filteredProducts = _recentProducts!;
+      } else {
+        _filteredProducts =
+            _recentProducts!
+                .where(
+                  (product) => product.pname!.toLowerCase().contains(
+                    query.toLowerCase(),
+                  ),
+                )
+                .toList();
+      }
+    });
   }
 
   Future<List<RecentlyAddedProduct>> fetchRecentlyAddedProducts() async {
@@ -334,7 +358,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 _isLoadingProducts
                     ? Center(child: ShimmerLoadingFilter())
-                    : (_recentProducts == null || _recentProducts!.isEmpty)
+                    : (_filteredProducts.isEmpty)
                     ? Center(child: Text('No products found.'))
                     : Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -374,6 +398,7 @@ class _HomePageState extends State<HomePage> {
                 color: Colors.white,
                 padding: EdgeInsets.all(16.0),
                 child: TextField(
+                  controller: _searchController,
                   autofocus: true,
                   decoration: InputDecoration(
                     filled: true,
@@ -385,11 +410,13 @@ class _HomePageState extends State<HomePage> {
                       borderSide: BorderSide.none,
                     ),
                   ),
+                  onChanged: (value) {
+                    _filterProducts(value); // ✅ live search filtering
+                  },
                   onSubmitted: (value) {
-                    // Handle search logic
+                    _filterProducts(value);
                     setState(() {
-                      _isSearchActive =
-                          false; // Close search box after submission
+                      _isSearchActive = false;
                     });
                   },
                 ),
@@ -768,27 +795,63 @@ class AppDrawer extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DrawerHeader(
-              decoration: BoxDecoration(color: Colors.brown.shade100),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 32,
-                    backgroundImage: AssetImage(
-                      'assets/profile_picture.jpg',
-                    ), // Use your logo or user image
-                  ),
-                  SizedBox(width: 16),
-                  Text(
-                    'Welcome!',
-                    style: TextStyle(
-                      color: Colors.brown,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.brown.shade100, Colors.brown.shade200],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      height: 80,
+                      width: 80,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.brown.withOpacity(0.3),
+                            blurRadius: 6,
+                            offset: Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Image.asset(
+                          'assets/Sri_Chandra_Jewelryn_webvvv.png',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    Text(
+                      'Sri Chandra Jewelers',
+                      style: TextStyle(
+                        color: Colors.brown.shade700,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Elegance in Every Detail',
+                      style: TextStyle(
+                        color: Colors.brown.shade400,
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
+
             ListTile(
               leading: Icon(Icons.home, color: Colors.brown),
               title: Text('Home'),

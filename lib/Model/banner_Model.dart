@@ -5,22 +5,19 @@ class BannerModel {
   BannerModel({required this.title, required this.image});
 
   factory BannerModel.fromJson(Map<String, dynamic> json) {
-    String rawImage = json['image'] ?? '';
+    String imageUrl = json['image'] ?? '';
 
-    // Remove the duplicate "assets/banner_image/assets/" part
-    rawImage = rawImage.replaceAll(
-      RegExp(r'assets/banner_image/assets/'),
-      'assets/images/', // ✅ Replace with correct path
-    );
+    // Decode escaped slashes if any
+    imageUrl = imageUrl.replaceAll(r'\/', '/');
 
-    // Replace backslashes with normal slashes
-    rawImage = rawImage.replaceAll(r'\', '/');
-
-    // Ensure it starts with the base URL
-    if (!rawImage.startsWith('http')) {
-      rawImage = 'https://afosindia.com/mobile/$rawImage';
+    // If the URL is relative, prepend the base URL
+    if (!imageUrl.startsWith('http')) {
+      imageUrl = 'https://pheonixconstructions.com/$imageUrl';
     }
 
-    return BannerModel(title: json['title'] ?? '', image: rawImage);
+    return BannerModel(
+      title: json['title'] ?? '',
+      image: imageUrl,
+    );
   }
 }
