@@ -17,6 +17,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   String _gender = 'Male';
 
   bool _isLoading = false;
@@ -26,6 +27,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -51,6 +53,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'lastname': _lastNameController.text,
         'email': _emailController.text,
         'gender': _gender,
+        'password': _passwordController.text,
       };
 
       // Correctly construct full GET URI
@@ -154,6 +157,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         value!.isEmpty || !value.contains('@')
                             ? 'Enter valid email'
                             : null,
+              ),
+              SizedBox(height: 16),
+              TextFormField(
+                controller: _passwordController,
+                decoration: _inputDecoration('Password'),
+                validator: (value) => value!.isEmpty ? 'Enter Password' : null,
               ),
               SizedBox(height: 16),
               DropdownButtonFormField<String>(

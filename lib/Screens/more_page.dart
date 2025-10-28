@@ -98,64 +98,64 @@ class MorePage extends StatelessWidget {
             ),
 
             // Logout Button
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: EdgeInsets.symmetric(vertical: 14),
-                minimumSize: Size(double.infinity, 48),
-              ),
-              onPressed: () {
-                // Show confirmation dialog
-                showDialog(
-                  context: context,
-                  builder:
-                      (context) => AlertDialog(
-                        title: Text('Logout'),
-                        content: Text('Are you sure you want to log out?'),
-                        actions: [
-                          TextButton(
-                            onPressed:
-                                () => Navigator.pop(context), // Close dialog
-                            child: Text('Cancel'),
-                          ),
-                          TextButton(
-                            onPressed: () async {
-                              // Close the dialog first
-                              Navigator.of(context, rootNavigator: true).pop();
+            // ElevatedButton(
+            //   style: ElevatedButton.styleFrom(
+            //     backgroundColor: Colors.red,
+            //     shape: RoundedRectangleBorder(
+            //       borderRadius: BorderRadius.circular(8),
+            //     ),
+            //     padding: EdgeInsets.symmetric(vertical: 14),
+            //     minimumSize: Size(double.infinity, 48),
+            //   ),
+            //   onPressed: () {
+            //     // Show confirmation dialog
+            //     showDialog(
+            //       context: context,
+            //       builder:
+            //           (context) => AlertDialog(
+            //             title: Text('Logout'),
+            //             content: Text('Are you sure you want to log out?'),
+            //             actions: [
+            //               TextButton(
+            //                 onPressed:
+            //                     () => Navigator.pop(context), // Close dialog
+            //                 child: Text('Cancel'),
+            //               ),
+            //               TextButton(
+            //                 onPressed: () async {
+            //                   // Close the dialog first
+            //                   Navigator.of(context, rootNavigator: true).pop();
 
-                              // Clear user_id from SharedPreferences
-                              final prefs =
-                                  await SharedPreferences.getInstance();
-                              await prefs.remove('user_id');
+            //                   // Clear user_id from SharedPreferences
+            //                   final prefs =
+            //                       await SharedPreferences.getInstance();
+            //                   await prefs.remove('user_id');
 
-                              // Navigate to login and clear all previous routes
-                              WidgetsBinding.instance.addPostFrameCallback((_) {
-                                Navigator.of(context).pushAndRemoveUntil(
-                                  MaterialPageRoute(
-                                    builder: (context) => LoginScreen(),
-                                  ),
-                                  (route) => false,
-                                );
-                              });
-                            },
-                            child: Text('Logout'),
-                          ),
-                        ],
-                      ),
-                );
-              },
-              child: Text(
-                'LOGOUT',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ),
+            //                   // Navigate to login and clear all previous routes
+            //                   WidgetsBinding.instance.addPostFrameCallback((_) {
+            //                     Navigator.of(context).pushAndRemoveUntil(
+            //                       MaterialPageRoute(
+            //                         builder: (context) => LoginScreen(),
+            //                       ),
+            //                       (route) => false,
+            //                     );
+            //                   });
+            //                 },
+            //                 child: Text('Logout'),
+            //               ),
+            //             ],
+            //           ),
+            //     );
+            //   },
+            //   child: Text(
+            //     'LOGOUT',
+            //     style: TextStyle(
+            //       fontSize: 16,
+            //       fontWeight: FontWeight.bold,
+            //       color: Colors.white,
+            //     ),
+            //   ),
+            // ),
           ],
         ),
       ),

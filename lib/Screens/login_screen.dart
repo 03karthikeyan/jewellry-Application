@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sri_chandra_jewel/Screens/bottom_nav_page.dart';
 import 'package:sri_chandra_jewel/Screens/registerScreen.dart';
 import 'otp_screen.dart';
 
@@ -13,22 +15,31 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _mobileController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
 
   Future<void> _loginWithMobile() async {
     final mobile = _mobileController.text.trim();
+    final password = _passwordController.text.trim();
 
+    // ✅ Validate mobile and password fields
     if (mobile.isEmpty || mobile.length != 10) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Please enter a valid 10-digit mobile number')),
       );
       return;
     }
+    if (password.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Please enter your password')));
+      return;
+    }
 
     setState(() => _isLoading = true);
 
     final url = Uri.parse(
-      'https://afosindia.com/mobile/login.php?mobile=$mobile',
+      'https://pheonixconstructions.com/mobile/userLogin.php?password=$password&mobile=$mobile',
     );
 
     try {
@@ -40,12 +51,13 @@ class _LoginScreenState extends State<LoginScreen> {
         print('Login API Response: $data');
 
         if (data['success'] == 1 &&
-            data['message'].toString().toLowerCase() == 'success') {
-          // User already registered, proceed to OTP screen
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => OtpScreen(mobile: mobile)),
-          );
+            data['message'].toString().toLowerCase().contains(
+              'login successful',
+            )) {
+          final userId = data['data']['id'].toString();
+
+          // ✅ Call navigation method
+          await _onLoginSuccessfully(userId);
         } else {
           //  User not found, show register prompt
           showDialog(
@@ -124,6 +136,17 @@ class _LoginScreenState extends State<LoginScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
     }
+  }
+
+  Future<void> _onLoginSuccessfully(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_id', userId);
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => BottomNavPage()),
+      (route) => false,
+    );
   }
 
   @override
@@ -216,6 +239,31 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
               ),
+              SizedBox(height: 16),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.brown.shade300, width: 1),
+                ),
+                child: TextField(
+                  controller: _passwordController,
+                  obscureText: true, // hides password input
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    hintText: 'Enter your password',
+                    hintStyle: TextStyle(
+                      fontSize: 16,
+                      color: Colors.brown.shade300,
+                    ),
+                  ),
+                ),
+              ),
+
               SizedBox(height: 24),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
