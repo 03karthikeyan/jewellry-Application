@@ -32,7 +32,7 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       final response = await http.get(
         Uri.parse(
-          'https://afosindia.com/mobile/profileFetch.php?user_id=$userId',
+          'https://pheonixconstructions.com/mobile/profileFetch.php?user_id=$userId',
         ),
       );
 
@@ -65,170 +65,187 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  void _showEditProfileDialog() {
-    final firstNameController = TextEditingController(
-      text: profileData?['first_name'] ?? '',
-    );
-    final lastNameController = TextEditingController(
-      text: profileData?['last_name'] ?? '',
-    );
-    final emailController = TextEditingController(
-      text: profileData?['email'] ?? '',
-    );
-    String selectedGender = profileData?['gender'] ?? 'MALE';
+ void _showEditProfileDialog() {
+  final firstNameController = TextEditingController(
+    text: profileData?['first_name']?.toString().trim() ?? '',
+  );
+  final lastNameController = TextEditingController(
+    text: profileData?['last_name']?.toString().trim() ?? '',
+  );
+  final emailController = TextEditingController(
+    text: profileData?['email']?.toString().trim() ?? '',
+  );
 
-    showDialog(
-      context: context,
-      builder:
-          (context) => StatefulBuilder(
-            builder:
-                (context, setDialogState) => AlertDialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+  String selectedGender = profileData?['gender']?.toString().toUpperCase() ?? 'MALE';
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            backgroundColor: Colors.white,
+            titlePadding: EdgeInsets.only(top: 20, left: 24, right: 24),
+            title: Row(
+              children: [
+                Icon(Icons.edit, color: Colors.brown),
+                SizedBox(width: 8),
+                Text(
+                  'Edit Profile',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    color: Colors.brown[700],
                   ),
-                  title: Text(
-                    'Edit Profile',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  content: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          TextField(
-                            controller: firstNameController,
-                            decoration: InputDecoration(
-                              labelText: 'First Name',
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                            ),
-                          ),
-                          SizedBox(height: 12),
-                          TextField(
-                            controller: lastNameController,
-                            decoration: InputDecoration(
-                              labelText: 'Last Name',
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                            ),
-                          ),
-                          SizedBox(height: 12),
-                          TextField(
-                            controller: emailController,
-                            decoration: InputDecoration(
-                              labelText: 'Email',
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                            ),
-                            keyboardType: TextInputType.emailAddress,
-                          ),
-                          SizedBox(height: 12),
-                          DropdownButtonFormField<String>(
-                            value: selectedGender,
-                            decoration: InputDecoration(
-                              labelText: 'Gender',
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                            ),
-                            items:
-                                ['MALE', 'FEMALE']
-                                    .map(
-                                      (gender) => DropdownMenuItem(
-                                        value: gender,
-                                        child: Text(gender),
-                                      ),
-                                    )
-                                    .toList(),
-                            onChanged:
-                                (value) => setDialogState(
-                                  () => selectedGender = value!,
-                                ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  actionsPadding: EdgeInsets.only(right: 16, bottom: 8),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text('Cancel'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _updateProfile(
-                          firstNameController.text,
-                          lastNameController.text,
-                          emailController.text,
-                          selectedGender,
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 10,
-                        ),
-                        backgroundColor: Colors.brown,
-                      ),
-                      child: Text(
-                        'Save',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ],
                 ),
-          ),
+              ],
+            ),
+            contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildTextField(
+                    controller: firstNameController,
+                    label: 'First Name',
+                    icon: Icons.person_outline,
+                  ),
+                  SizedBox(height: 12),
+                  _buildTextField(
+                    controller: lastNameController,
+                    label: 'Last Name',
+                    icon: Icons.person,
+                  ),
+                  SizedBox(height: 12),
+                  _buildTextField(
+                    controller: emailController,
+                    label: 'Email',
+                    icon: Icons.email_outlined,
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: selectedGender,
+                    decoration: InputDecoration(
+                      labelText: 'Gender',
+                      prefixIcon: Icon(Icons.wc_outlined),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    items: ['MALE', 'FEMALE']
+                        .map((gender) => DropdownMenuItem(
+                              value: gender,
+                              child: Text(gender),
+                            ))
+                        .toList(),
+                    onChanged: (value) => setDialogState(() {
+                      selectedGender = value!;
+                    }),
+                  ),
+                ],
+              ),
+            ),
+            actionsPadding: EdgeInsets.only(right: 16, bottom: 12),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Cancel', style: TextStyle(color: Colors.grey[700])),
+              ),
+              ElevatedButton.icon(
+                icon: Icon(Icons.save, color: Colors.white),
+                onPressed: () {
+                  Navigator.pop(context); // Close dialog only once
+                  _updateProfile(
+                    firstNameController.text.trim(),
+                    lastNameController.text.trim(),
+                    emailController.text.trim(),
+                    selectedGender,
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.brown,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                ),
+                label: Text(
+                  'Save',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
+
+Widget _buildTextField({
+  required TextEditingController controller,
+  required String label,
+  required IconData icon,
+  TextInputType keyboardType = TextInputType.text,
+}) {
+  return TextField(
+    controller: controller,
+    keyboardType: keyboardType,
+    decoration: InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    ),
+  );
+}
+
+Future<void> _updateProfile(
+  String firstName,
+  String lastName,
+  String email,
+  String gender,
+) async {
+  try {
+    final url =
+        'https://pheonixconstructions.com/mobile/profileUpdate.php'
+        '?user_id=$userId'
+        '&firstname=${Uri.encodeComponent(firstName)}'
+        '&lastname=${Uri.encodeComponent(lastName)}'
+        '&email=${Uri.encodeComponent(email)}'
+        '&gender=${Uri.encodeComponent(gender)}';
+
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Profile updated successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      fetchProfile(); // refresh data
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update profile'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error updating profile'),
+        backgroundColor: Colors.red,
+      ),
     );
   }
+}
 
-  Future<void> _updateProfile(
-    String firstName,
-    String lastName,
-    String email,
-    String gender,
-  ) async {
-    try {
-      final url =
-          'https://afosindia.com/mobile/profileUpdate.php'
-          '?user_id=$userId'
-          '&firstname=${Uri.encodeComponent(firstName)}'
-          '&lastname=${Uri.encodeComponent(lastName)}'
-          '&email=${Uri.encodeComponent(email)}'
-          '&gender=${Uri.encodeComponent(gender)}';
-
-      final response = await http.get(Uri.parse(url));
-
-      if (response.statusCode == 200) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Profile updated successfully')));
-        fetchProfile(); // Refresh profile data
-      } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to update profile')));
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error updating profile')));
-    }
-  }
 
   @override
   Widget build(BuildContext context) {

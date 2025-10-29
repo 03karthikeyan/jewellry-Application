@@ -75,7 +75,7 @@ class _OrdersPageState extends State<OrdersPage>
     try {
       final response = await http.get(
         Uri.parse(
-          'https://afosindia.com/mobile/fetchCartDetails.php?user_id=$userId',
+          'https://pheonixconstructions.com/mobile/fetchCartDetails.php?user_id=$userId',
         ),
       );
       print(
@@ -103,7 +103,7 @@ class _OrdersPageState extends State<OrdersPage>
   Future<void> _deleteCartItem(String cartId) async {
     try {
       final url =
-          'https://afosindia.com/mobile/cartDelete.php?user_id=$userId&cart_id=$cartId';
+          'https://pheonixconstructions.com/mobile/cartDelete.php?user_id=$userId&cart_id=$cartId';
       print('Delete cart item URL: $url');
 
       final response = await http.get(Uri.parse(url));
@@ -145,7 +145,7 @@ class _OrdersPageState extends State<OrdersPage>
   Future<void> _clearAllCart() async {
     try {
       final url =
-          'https://afosindia.com/mobile/cartDeleteAll.php?user_id=$userId';
+          'https://pheonixconstructions.com/mobile/cartDeleteAll.php?user_id=$userId';
       print('Clear all cart URL: $url');
 
       final response = await http.get(Uri.parse(url));
@@ -188,7 +188,7 @@ class _OrdersPageState extends State<OrdersPage>
     try {
       final response = await http.get(
         Uri.parse(
-          'https://afosindia.com/mobile/wishlistFetch.php?user_id=$userId',
+          'https://pheonixconstructions.com/mobile/wishlistFetch.php?user_id=$userId',
         ),
       );
       if (response.statusCode == 200) {
@@ -208,7 +208,7 @@ class _OrdersPageState extends State<OrdersPage>
   Future<void> _removeWishlistItem(String productId) async {
     try {
       final url =
-          'https://afosindia.com/mobile/wishlistRemove.php?user_id=$userId&product_id=$productId';
+          'https://pheonixconstructions.com/mobile/wishlistRemove.php?user_id=$userId&product_id=$productId';
       print('Remove wishlist item URL: $url');
 
       final response = await http.get(Uri.parse(url));
@@ -267,7 +267,7 @@ class _OrdersPageState extends State<OrdersPage>
   Future<void> fetchOrders() async {
     try {
       final response = await http.get(
-        Uri.parse('https://afosindia.com/mobile/myOrders.php?user_id=$userId'),
+        Uri.parse('https://pheonixconstructions.com/mobile/myOrders.php?user_id=$userId'),
       );
 
       if (response.statusCode == 200) {
@@ -402,7 +402,7 @@ class _OrdersPageState extends State<OrdersPage>
             final product = order['product_details'] ?? {};
             final imageUrl =
                 product['image'] != null
-                    ? 'https://afosindia.com/mobile/admin/uploads/${product['image']}'
+                    ? 'https://pheonixconstructions.com/mobile/admin/uploads/${product['image']}'
                     : '';
 
             return GestureDetector(

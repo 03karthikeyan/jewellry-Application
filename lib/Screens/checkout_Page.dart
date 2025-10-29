@@ -50,7 +50,7 @@ class _OrderCheckoutPageState extends State<OrderCheckoutPage> {
     final String cartId = '379'; // Or make it dynamic later
 
     final url =
-        'https://afosindia.com/mobile//placeOrder.php?user_id=$userId'
+        'https://pheonixconstructions.com/mobile//placeOrder.php?user_id=$userId'
         '&grandtotal=$grandTotal'
         '&address_id=$addressId'
         '&cart_id=$cartId';

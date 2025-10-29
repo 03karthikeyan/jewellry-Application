@@ -29,7 +29,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
     try {
       final response = await http.get(
         Uri.parse(
-          'https://afosindia.com/mobile/orderDetails.php?order_id=${widget.orderId}',
+          'https://pheonixconstructions.com/mobile/orderDetails.php?order_id=${widget.orderId}',
         ),
       );
 
@@ -68,7 +68,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
   Future<String> fetchProductName(int productId) async {
     final response = await http.get(
       Uri.parse(
-        'https://afosindia.com/mobile/productDetails.php?product_id=$productId',
+        'https://pheonixconstructions.com/mobile/productDetails.php?product_id=$productId',
       ),
     );
 

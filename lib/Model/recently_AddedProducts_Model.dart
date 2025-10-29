@@ -14,21 +14,24 @@ class RecentlyAddedProduct {
   });
 
   factory RecentlyAddedProduct.fromJson(Map<String, dynamic> json) {
-    // ⚡ Fix: Use correct folder for product images
-    String imageUrl =
-        'https://pheonixconstructions.com/jew/beta/assets/images/product_image/${json['pimage']}';
+    String imageUrl = json['pimage'] ?? '';
 
-    // Optional: remove extra slashes if server sends them
-    imageUrl = imageUrl.replaceAll('//', '/');
-    if (!imageUrl.startsWith('https://')) {
-      imageUrl = 'https://afosindia.com/$imageUrl';
+    // If the image URL is not full, build it manually
+    if (!imageUrl.startsWith('http')) {
+      imageUrl =
+          'https://pheonixconstructions.com/jew/beta/assets/images/product_image/$imageUrl';
     }
 
+    // Clean HTML tags from manufactured_by
+    final cleanManufacturedBy = (json['manufactured_by'] ?? '')
+        .replaceAll(RegExp(r'<[^>]*>'), '')
+        .trim();
+
     return RecentlyAddedProduct(
-      id: json['id'],
-      pname: json['pname'],
+      id: json['id'] ?? '',
+      pname: json['pname'] ?? '',
       pimage: imageUrl,
-      manufacturedBy: json['manufactured_by'] ?? '',
+      manufacturedBy: cleanManufacturedBy,
       inWishlist: json['in_wishlist'] ?? false,
     );
   }

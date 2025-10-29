@@ -36,7 +36,7 @@ class _DetailsPageState extends State<DetailsPage> {
   String _getImageUrl(String url) {
     if (url.startsWith('http')) return url;
     if (url.isEmpty) return widget.imagePath;
-    return 'https://afosindia.com/mobile/assets/images/product_image/$url';
+    return 'https://pheonixconstructions.com/mobile/assets/images/product_image/$url';
   }
 
   Future<void> _loadUserId() async {
@@ -52,7 +52,7 @@ class _DetailsPageState extends State<DetailsPage> {
       String cleanProductId = widget.productId.replaceAll('"', '');
 
       final url =
-          'https://afosindia.com/mobile/productDetails.php?product_id=$cleanProductId';
+          'https://pheonixconstructions.com/mobile/productDetails.php?product_id=$cleanProductId';
 
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -334,7 +334,7 @@ class _DetailsPageState extends State<DetailsPage> {
     try {
       String cleanProductId = widget.productId.replaceAll('"', '');
       final url =
-          'https://afosindia.com/mobile/checkWishlist.php?user_id=$userId&product_id=$cleanProductId';
+          'https://pheonixconstructions.com/mobile/checkWishlist.php?user_id=$userId&product_id=$cleanProductId';
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -360,8 +360,8 @@ class _DetailsPageState extends State<DetailsPage> {
       String cleanProductId = widget.productId.replaceAll('"', '');
       final url =
           isInWishlist
-              ? 'https://afosindia.com/mobile/wishlistRemove.php?user_id=$userId&product_id=$cleanProductId'
-              : 'https://afosindia.com/mobile/wishlistAdd.php?user_id=$userId&product_id=$cleanProductId';
+              ? 'https://pheonixconstructions.com/mobile/wishlistRemove.php?user_id=$userId&product_id=$cleanProductId'
+              : 'https://pheonixconstructions.com/mobile/wishlistAdd.php?user_id=$userId&product_id=$cleanProductId';
 
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -457,7 +457,7 @@ class _DetailsPageState extends State<DetailsPage> {
           (double.tryParse(unitPrice) ?? 0) - makingRate - wastageRate;
 
       final url =
-          'https://afosindia.com/mobile/addToCart.php'
+          'https://pheonixconstructions.com/mobile/addToCart.php'
           '?user_id=$userId'
           '&product_id=$cleanProductId'
           '&quantity=1'

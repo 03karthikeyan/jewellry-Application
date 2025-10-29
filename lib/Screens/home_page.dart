@@ -307,51 +307,51 @@ class _HomePageState extends State<HomePage> {
                 SizedBox(height: 16),
 
                 // New "Choose Your Style" Section
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Choose Your Style',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.brown,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        ChoiceItem(
-                          title: 'Diamond',
-                          imagePath: 'assets/diamond.jpg',
-                        ),
-                        SizedBox(width: 12),
-                        ChoiceItem(title: 'Gold', imagePath: 'assets/gold.jpg'),
-                        SizedBox(width: 12),
-                        ChoiceItem(
-                          title: 'Silver',
-                          imagePath: 'assets/silver.jpg',
-                        ),
-                        SizedBox(width: 12),
-                        ChoiceItem(
-                          title: 'Platinum',
-                          imagePath: 'assets/platinum.jpg',
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                // Padding(
+                //   padding: const EdgeInsets.all(16.0),
+                //   child: Text(
+                //     'Choose Your Style',
+                //     style: TextStyle(
+                //       fontSize: 18,
+                //       fontWeight: FontWeight.bold,
+                //       color: Colors.brown,
+                //     ),
+                //   ),
+                // ),
+                // Padding(
+                //   padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                //   child: SingleChildScrollView(
+                //     scrollDirection: Axis.horizontal,
+                //     child: Row(
+                //       children: [
+                //         ChoiceItem(
+                //           title: 'Diamond',
+                //           imagePath: 'assets/diamond.jpg',
+                //         ),
+                //         SizedBox(width: 12),
+                //         ChoiceItem(title: 'Gold', imagePath: 'assets/gold.jpg'),
+                //         SizedBox(width: 12),
+                //         ChoiceItem(
+                //           title: 'Silver',
+                //           imagePath: 'assets/silver.jpg',
+                //         ),
+                //         SizedBox(width: 12),
+                //         ChoiceItem(
+                //           title: 'Platinum',
+                //           imagePath: 'assets/platinum.jpg',
+                //         ),
+                //       ],
+                //     ),
+                //   ),
+                // ),
 
                 // Continue with the rest of the existing sections...
-                SizedBox(height: 16),
+                // SizedBox(height: 16),
                 // Recently Added Products Section
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Text(
-                    'Recently Added Products',
+                    'New Arrived Products',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,

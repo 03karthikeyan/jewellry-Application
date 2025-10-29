@@ -49,8 +49,8 @@ class _ProductListPageState extends State<ProductListPage> {
 
     final uri = Uri.parse(
       isWishlisted
-          ? 'https://afosindia.com/mobile/wishlistRemove.php?user_id=$userId&product_id=$productId'
-          : 'https://afosindia.com/mobile/wishlistAdd.php?user_id=$userId&product_id=$productId',
+          ? 'https://pheonixconstructions.com/mobile/wishlistRemove.php?user_id=$userId&product_id=$productId'
+          : 'https://pheonixconstructions.com/mobile/wishlistAdd.php?user_id=$userId&product_id=$productId',
     );
 
     try {
@@ -153,87 +153,87 @@ class _ProductListPageState extends State<ProductListPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Stack(
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.vertical(
-                                    top: Radius.circular(16),
-                                  ),
-                                  child: Image.network(
-                                    product
-                                        .image, // ✅ use the full URL from model
-                                    height: 140,
-                                    width: double.infinity,
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            Container(
-                                              height: 140,
-                                              width: double.infinity,
-                                              decoration: BoxDecoration(
-                                                color: Colors.grey[200],
-                                                borderRadius:
-                                                    BorderRadius.vertical(
-                                                      top: Radius.circular(16),
-                                                    ),
-                                              ),
-                                              child: const Center(
-                                                child: Icon(
-                                                  Icons.broken_image,
-                                                  size: 40,
-                                                  color: Colors.grey,
-                                                ),
-                                              ),
-                                            ),
-                                  ),
-                                ),
-                                Positioned(
-                                  top: 8,
-                                  right: 8,
-                                  child: InkWell(
-                                    onTap: () {
-                                      // if (_isUserIdLoaded) {
-                                      //   toggleWishlist(product.id);
-                                      // } else {
-                                      //   ScaffoldMessenger.of(
-                                      //     context,
-                                      //   ).showSnackBar(
-                                      //     SnackBar(
-                                      //       content: Text(
-                                      //         "User not loaded yet, please wait.",
-                                      //       ),
-                                      //     ),
-                                      //   );
-                                      // }
-                                    },
+                            // Stack(
+                            //   children: [
+                            //     ClipRRect(
+                            //       borderRadius: BorderRadius.vertical(
+                            //         top: Radius.circular(16),
+                            //       ),
+                            //       child: Image.network(
+                            //         product
+                            //             .image, // ✅ use the full URL from model
+                            //         height: 140,
+                            //         width: double.infinity,
+                            //         fit: BoxFit.cover,
+                            //         errorBuilder:
+                            //             (context, error, stackTrace) =>
+                            //                 Container(
+                            //                   height: 140,
+                            //                   width: double.infinity,
+                            //                   decoration: BoxDecoration(
+                            //                     color: Colors.grey[200],
+                            //                     borderRadius:
+                            //                         BorderRadius.vertical(
+                            //                           top: Radius.circular(16),
+                            //                         ),
+                            //                   ),
+                            //                   child: const Center(
+                            //                     child: Icon(
+                            //                       Icons.broken_image,
+                            //                       size: 40,
+                            //                       color: Colors.grey,
+                            //                     ),
+                            //                   ),
+                            //                 ),
+                            //       ),
+                            //     ),
+                            //     Positioned(
+                            //       top: 8,
+                            //       right: 8,
+                            //       child: InkWell(
+                            //         onTap: () {
+                            //           // if (_isUserIdLoaded) {
+                            //           //   toggleWishlist(product.id);
+                            //           // } else {
+                            //           //   ScaffoldMessenger.of(
+                            //           //     context,
+                            //           //   ).showSnackBar(
+                            //           //     SnackBar(
+                            //           //       content: Text(
+                            //           //         "User not loaded yet, please wait.",
+                            //           //       ),
+                            //           //     ),
+                            //           //   );
+                            //           // }
+                            //         },
 
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        shape: BoxShape.circle,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black12,
-                                            blurRadius: 4,
-                                          ),
-                                        ],
-                                      ),
-                                      padding: const EdgeInsets.all(6),
-                                      child: Icon(
-                                        isWishlisted
-                                            ? Icons.favorite
-                                            : Icons.favorite_border,
-                                        size: 18,
-                                        color:
-                                            isWishlisted
-                                                ? Colors.red
-                                                : Colors.brown,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                            //         child: Container(
+                            //           decoration: BoxDecoration(
+                            //             color: Colors.white,
+                            //             shape: BoxShape.circle,
+                            //             boxShadow: [
+                            //               BoxShadow(
+                            //                 color: Colors.black12,
+                            //                 blurRadius: 4,
+                            //               ),
+                            //             ],
+                            //           ),
+                            //           padding: const EdgeInsets.all(6),
+                            //           child: Icon(
+                            //             isWishlisted
+                            //                 ? Icons.favorite
+                            //                 : Icons.favorite_border,
+                            //             size: 18,
+                            //             color:
+                            //                 isWishlisted
+                            //                     ? Colors.red
+                            //                     : Colors.brown,
+                            //           ),
+                            //         ),
+                            //       ),
+                            //     ),
+                            //   ],
+                            // ),
                             Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 8,

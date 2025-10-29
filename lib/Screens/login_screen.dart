@@ -6,7 +6,6 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sri_chandra_jewel/Screens/bottom_nav_page.dart';
 import 'package:sri_chandra_jewel/Screens/registerScreen.dart';
-import 'otp_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -17,22 +16,51 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _mobileController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
+   @override
+  void initState() {
+    super.initState();
+    _loadUserId();
+  }
+
+
+  // ✅ Load saved user ID when screen opens
+ Future<void> _loadUserId() async {
+  final prefs = await SharedPreferences.getInstance();
+  final storedId = prefs.getString('user_id');
+
+  print('🔍 Loaded User ID: $storedId'); // Debug check
+
+  if (storedId != null && storedId.isNotEmpty) {
+    setState(() => userId = storedId);
+    await fetchProfile();
+  } else {
+    setState(() {
+      isLoading = false;
+    });
+    Fluttertoast.showToast(
+      msg: "User not logged in properly!",
+      backgroundColor: Colors.red,
+    );
+  }
+}
+
+
+  // 🔹 Login function with validation & response handling
   Future<void> _loginWithMobile() async {
     final mobile = _mobileController.text.trim();
     final password = _passwordController.text.trim();
 
-    // ✅ Validate mobile and password fields
-    if (mobile.isEmpty || mobile.length != 10) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please enter a valid 10-digit mobile number')),
-      );
+    // ✅ Field validation
+    if (mobile.isEmpty) {
+      _showSnack('Please enter your mobile number');
       return;
-    }
-    if (password.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Please enter your password')));
+    } else if (mobile.length != 10 || !RegExp(r'^[0-9]+$').hasMatch(mobile)) {
+      _showSnack('Please enter a valid 10-digit mobile number');
+      return;
+    } else if (password.isEmpty) {
+      _showSnack('Please enter your password');
       return;
     }
 
@@ -50,235 +78,195 @@ class _LoginScreenState extends State<LoginScreen> {
         final data = json.decode(response.body);
         print('Login API Response: $data');
 
-        if (data['success'] == 1 &&
-            data['message'].toString().toLowerCase().contains(
-              'login successful',
-            )) {
-          final userId = data['data']['id'].toString();
+        final success = data['success'];
+        final message = data['message'].toString().toLowerCase();
 
-          // ✅ Call navigation method
+        if (success == 1 && message.contains('login successful')) {
+          final userId = data['data']['id'].toString();
           await _onLoginSuccessfully(userId);
+          _showSnack('Login successful ✅', success: true);
+        } else if (message.contains('not registered') ||
+            message.contains('user not found')) {
+          _showRegisterDialog(mobile);
+        } else if (message.contains('incorrect password') ||
+            message.contains('wrong password')) {
+          _showSnack('Incorrect password. Please try again.');
         } else {
-          //  User not found, show register prompt
-          showDialog(
-            context: context,
-            builder:
-                (context) => AlertDialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  backgroundColor: Colors.white,
-                  title: Row(
-                    children: [
-                      Icon(Icons.person_add_alt_1_rounded, color: Colors.brown),
-                      SizedBox(width: 8),
-                      Text(
-                        'New User',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ],
-                  ),
-                  content: Text(
-                    'It looks like you are a new user.\nPlease register to continue.',
-                    style: TextStyle(fontSize: 16, color: Colors.black54),
-                  ),
-                  actionsPadding: EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  actions: [
-                    TextButton(
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.brown,
-                        textStyle: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      onPressed: () => Navigator.pop(context),
-                      child: Text('CANCEL'),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.brown,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) => RegisterScreen(mobile: mobile),
-                          ),
-                        );
-                      },
-                      child: Text(
-                        'REGISTER',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ],
-                ),
-          );
+          _showSnack('Invalid credentials. Please check your details.');
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to login. Please try again.')),
-        );
+        _showSnack('Server error. Please try again later.');
       }
     } catch (e) {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      _showSnack('Error: ${e.toString()}');
     }
   }
 
-  Future<void> _onLoginSuccessfully(String userId) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('user_id', userId);
+ // 🔹 Save userId locally & move to BottomNavPage
+Future<void> _onLoginSuccessfully(String userId) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString('user_id', userId);
 
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => BottomNavPage()),
-      (route) => false,
+  print('✅ Logged-in user ID saved locally: $userId');
+
+  // Navigate & remove all previous routes
+  Navigator.pushAndRemoveUntil(
+    context,
+    MaterialPageRoute(builder: (_) => BottomNavPage()),
+    (route) => false,
+  );
+}
+
+
+  // 🔹 SnackBar for messages
+  void _showSnack(String message, {bool success = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: TextStyle(color: Colors.white)),
+        backgroundColor: success ? Colors.green : Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  // 🔹 Register dialog
+  void _showRegisterDialog(String mobile) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.person_add_alt_1_rounded, color: Colors.brown),
+            SizedBox(width: 8),
+            Text(
+              'User Not Found',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.brown[800],
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'This mobile number is not registered.\nWould you like to register now?',
+          style: TextStyle(fontSize: 16, color: Colors.brown.shade600),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('CANCEL', style: TextStyle(color: Colors.grey[700])),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.brown,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => RegisterScreen(mobile: mobile),
+                ),
+              );
+            },
+            child: Text('REGISTER', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.white, Colors.white70],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+      body: SingleChildScrollView(
+        child: Container(
+          width: double.infinity,
+          height: MediaQuery.of(context).size.height,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.white, Colors.white70],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
           ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Sri Chandra Jewel Crafts',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.brown,
-                  fontFamily: 'Serif',
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // 🔹 Logo / Title
+                Text(
+                  'Sri Chandra Jewel Crafts',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.brown,
+                    fontFamily: 'Serif',
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 16),
-              Text(
-                'Login ',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.brown,
+                SizedBox(height: 16),
+                Text(
+                  'Login with your mobile number',
+                  style: TextStyle(fontSize: 16, color: Colors.brown.shade400),
                 ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Login with your mobile number',
-                style: TextStyle(fontSize: 16, color: Colors.brown.shade300),
-              ),
-              SizedBox(height: 24),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.brown.shade300, width: 1),
-                ),
-                child: Row(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                      child: Text(
-                        '+91',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.brown,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Divider(),
-                    Expanded(
-                      child: TextField(
-                        controller: _mobileController,
-                        keyboardType: TextInputType.number,
-                        maxLength: 10, // Restrict to 10 digits
-                        inputFormatters: [
-                          FilteringTextInputFormatter
-                              .digitsOnly, // Only numbers allowed
-                          LengthLimitingTextInputFormatter(
-                            10,
-                          ), // Limit to 10 digits
-                        ],
-                        decoration: InputDecoration(
-                          counterText: "", // Hides the character counter
-                          border: InputBorder.none,
-                          hintText: 'Enter your mobile number',
-                          hintStyle: TextStyle(
-                            fontSize: 16,
-                            color: Colors.brown.shade300,
-                          ),
-                        ),
-                      ),
-                    ),
+                SizedBox(height: 30),
+
+                // 🔹 Mobile field
+                _buildTextField(
+                  controller: _mobileController,
+                  hint: 'Enter mobile number',
+                  prefix: '+91 ',
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
                   ],
                 ),
-              ),
-              SizedBox(height: 16),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.brown.shade300, width: 1),
-                ),
-                child: TextField(
-                  controller: _passwordController,
-                  obscureText: true, // hides password input
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    hintText: 'Enter your password',
-                    hintStyle: TextStyle(
-                      fontSize: 16,
-                      color: Colors.brown.shade300,
-                    ),
-                  ),
-                ),
-              ),
+                SizedBox(height: 16),
 
-              SizedBox(height: 24),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.brown,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                // 🔹 Password field with toggle
+                _buildTextField(
+  controller: _passwordController,
+  hint: 'Enter password',
+  obscureText: _obscurePassword,
+  prefixIcon: Icon(Icons.lock_outline, color: Colors.brown), // 👈 Added here
+  suffixIcon: IconButton(
+    icon: Icon(
+      _obscurePassword
+          ? Icons.visibility_off_outlined
+          : Icons.visibility_outlined,
+      color: Colors.brown,
+    ),
+    onPressed: () {
+      setState(() => _obscurePassword = !_obscurePassword);
+    },
+  ),
+),
+
+                SizedBox(height: 30),
+
+                // 🔹 Continue button
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.brown,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    minimumSize: Size(double.infinity, 50),
                   ),
-                  padding: EdgeInsets.symmetric(vertical: 14),
-                  minimumSize: Size(double.infinity, 48),
-                ),
-                onPressed: _isLoading ? null : _loginWithMobile,
-                child:
-                    _isLoading
-                        ? CircularProgressIndicator(color: Colors.white)
-                        : Text(
+                  onPressed: _isLoading ? null : _loginWithMobile,
+                  child: _isLoading
+                      ? CircularProgressIndicator(color: Colors.white)
+                      : Text(
                           'CONTINUE',
                           style: TextStyle(
                             fontSize: 16,
@@ -286,142 +274,76 @@ class _LoginScreenState extends State<LoginScreen> {
                             color: Colors.white,
                           ),
                         ),
-              ),
-              SizedBox(height: 32),
-              Text(
-                'Or login with',
-                style: TextStyle(fontSize: 14, color: Colors.brown.shade300),
-              ),
-              SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildSocialLoginButton(
-                    icon: FontAwesomeIcons.facebook,
-                    label: 'Facebook',
-                    color: Colors.blue.shade800,
-                    onTap: () {
-                      // Your login logic here
-                    },
-                  ),
-                  SizedBox(width: 16),
-                  _buildSocialLoginButton(
-                    icon: FontAwesomeIcons.instagram,
-                    label: 'Instagram',
-                    color: Colors.pink.shade400,
-                    onTap: () {
-                      // Your login logic here
-                    },
-                  ),
+                ),
+                SizedBox(height: 30),
 
-                  SizedBox(width: 16),
-                  _buildSocialLoginButton(
-                    icon: FontAwesomeIcons.google,
-                    label: 'Google',
-                    color: Colors.redAccent,
-                    onTap: () {
-                      // Your login logic here
-                    },
+                // 🔹 Register now text
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => RegisterScreen(mobile: '')),
                   ),
-                ],
-              ),
-
-              SizedBox(height: 24),
-              Column(
-                children: [
-                  Text(
-                    'By continuing, you agree to our',
+                  child: Text(
+                    "Don't have an account? Register now",
                     style: TextStyle(
+                      color: Colors.brown,
                       fontSize: 14,
-                      color: Colors.brown.shade300,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Material(
-                        color: Colors.transparent, // no background
-                        child: InkWell(
-                          onTap: () {
-                            // Open Terms of Use
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 2,
-                              horizontal: 4,
-                            ),
-                            child: Text(
-                              'Terms of Use',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.brown,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Text(
-                        ' & ',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.brown.shade300,
-                        ),
-                      ),
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () {
-                            // Open Privacy Policy
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 2,
-                              horizontal: 4,
-                            ),
-                            child: Text(
-                              'Privacy Policy',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.brown,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
-}
 
-//Socialmedia based login method
-Widget _buildSocialLoginButton({
-  required IconData icon,
-  required String label,
-  required Color color,
-  required VoidCallback onTap, // new param
-}) {
-  return InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(30), // ripple effect shape
-    child: Column(
-      children: [
-        CircleAvatar(
-          radius: 22,
-          backgroundColor: color,
-          child: Icon(icon, color: Colors.white, size: 24),
-        ),
-        SizedBox(height: 4),
-        Text(label, style: TextStyle(fontSize: 12, color: Colors.brown)),
-      ],
-    ),
-  );
+  // 🔹 Reusable text field widget
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    String? prefix,
+    bool obscureText = false,
+    List<TextInputFormatter>? inputFormatters,
+    TextInputType? keyboardType,
+    Widget? suffixIcon,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.brown.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          if (prefix != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 12.0),
+              child: Text(prefix,
+                  style: TextStyle(
+                      color: Colors.brown, fontWeight: FontWeight.bold)),
+            ),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              obscureText: obscureText,
+              keyboardType: keyboardType,
+              inputFormatters: inputFormatters,
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                hintText: hint,
+                hintStyle:
+                    TextStyle(fontSize: 16, color: Colors.brown.shade300),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                suffixIcon: suffixIcon,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
