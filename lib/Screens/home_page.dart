@@ -2,22 +2,28 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:jewellery/Bloc/banner_Bloc.dart';
-import 'package:jewellery/Bloc/category_Bloc.dart';
-import 'package:jewellery/Event/banner_Event.dart';
-import 'package:jewellery/Event/category_Event.dart';
-import 'package:jewellery/Model/banner_Model.dart';
-import 'package:jewellery/Screens/details_page.dart';
-import 'package:jewellery/Screens/diamond_jewellery_page.dart';
-import 'package:jewellery/Screens/earrings_page.dart';
-import 'package:jewellery/Screens/gold_jewellery_page.dart';
-import 'package:jewellery/Screens/necklaces_page.dart';
-import 'package:jewellery/Screens/productList_Page.dart';
-import 'package:jewellery/Screens/rings_page.dart';
-import 'package:jewellery/Screens/shimmer_Loader.dart';
-import 'package:jewellery/Screens/silver_jewellery_page.dart';
-import 'package:jewellery/State/banner_State.dart';
-import 'package:jewellery/State/category_State.dart';
+import 'package:sri_chandra_jewel/Bloc/banner_Bloc.dart';
+import 'package:sri_chandra_jewel/Bloc/category_Bloc.dart';
+import 'package:sri_chandra_jewel/Event/banner_Event.dart';
+import 'package:sri_chandra_jewel/Event/category_Event.dart';
+import 'package:sri_chandra_jewel/Model/banner_Model.dart';
+import 'package:sri_chandra_jewel/Model/recently_AddedProducts_Model.dart';
+import 'package:sri_chandra_jewel/Screens/category_page.dart';
+import 'package:sri_chandra_jewel/Screens/details_page.dart';
+import 'package:sri_chandra_jewel/Screens/diamond_jewellery_page.dart';
+import 'package:sri_chandra_jewel/Screens/earrings_page.dart';
+import 'package:sri_chandra_jewel/Screens/gold_jewellery_page.dart';
+import 'package:sri_chandra_jewel/Screens/login_screen.dart';
+import 'package:sri_chandra_jewel/Screens/necklaces_page.dart';
+import 'package:sri_chandra_jewel/Screens/orders_page.dart';
+import 'package:sri_chandra_jewel/Screens/productList_Page.dart';
+import 'package:sri_chandra_jewel/Screens/profile_page.dart';
+import 'package:sri_chandra_jewel/Screens/rings_page.dart';
+import 'package:sri_chandra_jewel/Screens/shimmer_Loader.dart';
+import 'package:sri_chandra_jewel/State/banner_State.dart';
+import 'package:sri_chandra_jewel/State/category_State.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'dart:async';
 import 'package:video_player/video_player.dart';
 import 'package:marquee/marquee.dart';
@@ -34,6 +40,11 @@ class _HomePageState extends State<HomePage> {
   Timer? _autoSlideTimer;
   bool _isSearchActive = false; // Track if the search box is active
   List<String> _bannerImages = [];
+  List<RecentlyAddedProduct>? _recentProducts;
+  bool _isLoadingProducts = true;
+
+  List<RecentlyAddedProduct> _filteredProducts = [];
+  TextEditingController _searchController = TextEditingController();
 
   // final List<String> _bannerImages = [
   //   'assets/banner1.webp',
@@ -46,34 +57,36 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _startAutoSlide();
-    _videoController = VideoPlayerController.asset('assets/jewel-video.mp4')
-      ..initialize().then((_) {
-        setState(() {});
-        _videoController.setLooping(true);
-        _videoController.setVolume(0); // Mute the video
-        _videoController.play();
-        // fetchBannerImages();
-        context.read<CategoryBloc>().add(FetchCategoryEvent());
-        context.read<BannerBloc>().add(FetchBannerEvent());
-      });
+
+    context.read<CategoryBloc>().add(FetchCategoryEvent());
+    context.read<BannerBloc>().add(FetchBannerEvent());
+    _startBannerAutoSlide(_bannerImages.length);
+
+    _loadRecentlyAddedProducts();
   }
 
   @override
   void dispose() {
     _autoSlideTimer?.cancel();
     _pageController.dispose();
-    _videoController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
-  void _startAutoSlide() {
+  void _startBannerAutoSlide(int bannerCount) {
+    _autoSlideTimer?.cancel(); // cancel previous timer if exists
+
+    if (bannerCount <= 1) return; // no need to slide if only 1 banner
+
     _autoSlideTimer = Timer.periodic(Duration(seconds: 3), (timer) {
-      if (_currentPage < _bannerImages.length - 1) {
+      if (!_pageController.hasClients) return;
+
+      if (_currentPage < bannerCount - 1) {
         _currentPage++;
       } else {
         _currentPage = 0;
       }
+
       _pageController.animateToPage(
         _currentPage,
         duration: Duration(milliseconds: 500),
@@ -82,31 +95,60 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  //banner API integration
+  //Recently Added Products API integration
 
-  // Future<void> fetchBannerImages() async {
-  //   final response = await http.get(
-  //     Uri.parse('http://pheonixconstructions.com/mobile/bannerList.php'),
-  //   );
+  Future<void> _loadRecentlyAddedProducts() async {
+    try {
+      final products = await fetchRecentlyAddedProducts();
+      setState(() {
+        _recentProducts = products;
+        _filteredProducts = products;
+        _isLoadingProducts = false;
+      });
+    } catch (e) {
+      setState(() {
+        _recentProducts = [];
+        _filteredProducts = [];
+        _isLoadingProducts = false;
+      });
+    }
+  }
 
-  //   if (response.statusCode == 200) {
-  //     final jsonData = jsonDecode(response.body);
-  //     final List<dynamic> storeList = jsonData['storeList'];
-  //     print('Working banners');
+  void _filterProducts(String query) {
+    if (_recentProducts == null) return;
 
-  //     setState(() {
-  //       _bannerImages =
-  //           storeList
-  //               .map(
-  //                 (item) => 'http://pheonixconstructions.com/' + item['image'],
-  //               )
-  //               .toList()
-  //               .cast<String>();
-  //     });
-  //   } else {
-  //     print('Failed to load banners');
-  //   }
-  // }
+    setState(() {
+      if (query.isEmpty) {
+        _filteredProducts = _recentProducts!;
+      } else {
+        _filteredProducts =
+            _recentProducts!
+                .where(
+                  (product) => product.pname!.toLowerCase().contains(
+                    query.toLowerCase(),
+                  ),
+                )
+                .toList();
+      }
+    });
+  }
+
+  Future<List<RecentlyAddedProduct>> fetchRecentlyAddedProducts() async {
+    final response = await http.get(
+      Uri.parse(
+        'https://pheonixconstructions.com/mobile/recentlyAddedProduct.php',
+      ),
+    );
+
+    if (response.statusCode == 200) {
+      final jsonData = json.decode(response.body);
+      if (jsonData['result'] == 'Success') {
+        List list = jsonData['storeList'];
+        return list.map((item) => RecentlyAddedProduct.fromJson(item)).toList();
+      }
+    }
+    throw Exception('Network issue to load products');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -163,71 +205,53 @@ class _HomePageState extends State<HomePage> {
                 BlocBuilder<BannerBloc, BannerState>(
                   builder: (context, state) {
                     if (state is BannerLoading) {
-                      return Center(child: ShimmerLoading());
+                      return SizedBox(
+                        height: 100,
+                        child: ShimmerLoadingBanner(), // shimmer for banner
+                      );
                     } else if (state is BannerLoaded) {
-                      final List<BannerModel> banners = state.banners;
+                      final banners = state.banners;
 
-                      return Stack(
+                      _startBannerAutoSlide(banners.length);
+
+                      return Column(
                         children: [
                           SizedBox(
-                            height: 200,
+                            height: 180,
                             child: PageView.builder(
                               controller: _pageController,
                               itemCount: banners.length,
-                              onPageChanged: (index) {
-                                setState(() {
-                                  _currentPage = index;
-                                });
-                              },
                               itemBuilder: (context, index) {
                                 return BannerCard(
-                                  imagePath:
-                                      banners[index]
-                                          .image, // ✅ Use banners list, not _bannerImages
+                                  imagePath: banners[index].image,
                                 );
                               },
                             ),
                           ),
-                          Positioned(
-                            bottom: 10,
-                            left: 0,
-                            right: 0,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: List.generate(
-                                banners.length,
-                                (index) => AnimatedContainer(
-                                  duration: Duration(milliseconds: 300),
-                                  margin: EdgeInsets.symmetric(horizontal: 4),
-                                  width: _currentPage == index ? 12 : 8,
-                                  height: _currentPage == index ? 12 : 8,
-                                  decoration: BoxDecoration(
-                                    color:
-                                        _currentPage == index
-                                            ? Colors.brown
-                                            : Colors.brown.shade300,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                              ),
+                          SizedBox(
+                            height: 8,
+                          ), // small gap between banner and dots
+                          SmoothPageIndicator(
+                            controller: _pageController,
+                            count: banners.length,
+                            effect: WormEffect(
+                              dotHeight: 8,
+                              dotWidth: 8,
+                              spacing: 6,
+                              dotColor: Colors.grey.shade300,
+                              activeDotColor: Colors.blueAccent,
                             ),
                           ),
                         ],
                       );
                     } else if (state is BannerError) {
-                      return Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Center(
-                          child: Text(
-                            state.message,
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        ),
+                      return SizedBox(
+                        height: 200,
+                        child: Center(child: Text("Failed to load banners")),
                       );
                     }
 
-                    // ✅ Return fallback UI for BannerInitial or unknown states
-                    return SizedBox(height: 200); // or a placeholder banner
+                    return SizedBox(height: 200); // fallback
                   },
                 ),
 
@@ -250,7 +274,10 @@ class _HomePageState extends State<HomePage> {
                   child: BlocBuilder<CategoryBloc, CategoryState>(
                     builder: (context, state) {
                       if (state is CategoryLoading) {
-                        return Center(child: ShimmerLoadingFilter());
+                        return SizedBox(
+                          height: 100, // ✅ reserve space
+                          child: ShimmerLoadingCategory(),
+                        );
                       } else if (state is CategoryLoaded) {
                         return SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
@@ -280,42 +307,51 @@ class _HomePageState extends State<HomePage> {
                 SizedBox(height: 16),
 
                 // New "Choose Your Style" Section
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Choose Your Style',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.brown,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      ChoiceItem(
-                        title: 'Diamond',
-                        imagePath: 'assets/diamond.png',
-                      ),
-                      ChoiceItem(title: 'Gold', imagePath: 'assets/gold.png'),
-                      ChoiceItem(
-                        title: 'Silver',
-                        imagePath: 'assets/silver.png',
-                      ),
-                    ],
-                  ),
-                ),
+                // Padding(
+                //   padding: const EdgeInsets.all(16.0),
+                //   child: Text(
+                //     'Choose Your Style',
+                //     style: TextStyle(
+                //       fontSize: 18,
+                //       fontWeight: FontWeight.bold,
+                //       color: Colors.brown,
+                //     ),
+                //   ),
+                // ),
+                // Padding(
+                //   padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                //   child: SingleChildScrollView(
+                //     scrollDirection: Axis.horizontal,
+                //     child: Row(
+                //       children: [
+                //         ChoiceItem(
+                //           title: 'Diamond',
+                //           imagePath: 'assets/diamond.jpg',
+                //         ),
+                //         SizedBox(width: 12),
+                //         ChoiceItem(title: 'Gold', imagePath: 'assets/gold.jpg'),
+                //         SizedBox(width: 12),
+                //         ChoiceItem(
+                //           title: 'Silver',
+                //           imagePath: 'assets/silver.jpg',
+                //         ),
+                //         SizedBox(width: 12),
+                //         ChoiceItem(
+                //           title: 'Platinum',
+                //           imagePath: 'assets/platinum.jpg',
+                //         ),
+                //       ],
+                //     ),
+                //   ),
+                // ),
 
                 // Continue with the rest of the existing sections...
-                SizedBox(height: 16),
-                // Featured Products Section
+                // SizedBox(height: 16),
+                // Recently Added Products Section
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Text(
-                    'Featured Products',
+                    'New Arrived Products',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -323,200 +359,37 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: GridView.builder(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                      childAspectRatio: 0.8,
-                    ),
-                    itemCount: 8,
-                    itemBuilder: (context, index) {
-                      return ProductCard(
-                        name: 'Graceful Overlap Gold Bangles ${index + 1}',
-                        price: '₹169300',
-                        originalPrice: '₹169300',
-                        imagePath: 'assets/ring_${index + 1}.jpg',
-                      );
-                    },
-                  ),
-                ),
-                SizedBox(height: 16),
-
-                // Add this below the "Featured Products" section
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Exclusive Offers',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.brown,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) => DetailsPage(
-                                      name: 'Flat 20% Off',
-                                      price: 'On all diamond jewellery',
-                                      imagePath: 'assets/diamond1.png',
-                                    ),
-                              ),
-                            );
-                          },
-                          child: OfferCard(
-                            title: 'Flat 20% Off',
-                            description: 'On all diamond jewellery',
-                            imagePath: 'assets/diamond1.png',
-                          ),
+                _isLoadingProducts
+                    ? Center(child: ShimmerLoadingFilter())
+                    : (_filteredProducts.isEmpty)
+                    ? Center(child: Text('No products found.'))
+                    : Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: GridView.builder(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount:
+                            _filteredProducts
+                                .length, // ✅ Use filtered list here
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                          childAspectRatio: 0.72,
                         ),
+                        itemBuilder: (context, index) {
+                          final product =
+                              _filteredProducts[index]; // ✅ Use filtered list here
+                          return ProductCard(
+                            name: product.pname ?? 'No Name',
+                            imageUrl: product.pimage ?? '',
+                            productId: product.id ?? '',
+                          );
+                        },
                       ),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) => DetailsPage(
-                                      name: 'Buy 1 Get 1',
-                                      price: 'On selected gold rings',
-                                      imagePath: 'assets/gold1.png',
-                                    ),
-                              ),
-                            );
-                          },
-                          child: OfferCard(
-                            title: 'Buy 1 Get 1',
-                            description: 'On selected gold rings',
-                            imagePath: 'assets/gold1.png',
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                    ),
 
-                // Sparkle Every Day Section
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Sparkle Every Day',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.brown,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Image.asset(
-                    'assets/sparkle_banner.jpg',
-                    fit: BoxFit.cover,
-                  ),
-                ),
                 SizedBox(height: 16),
-                // Surprise for Her Section
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Surprise For Her',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.brown,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Image.asset(
-                    'assets/surprise_for_her.jpg',
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                SizedBox(height: 16),
-
-                // Unleash Your Ride Section
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Unleash Your Ride',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.brown,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: SizedBox(
-                    height: 220, // Increase this value as needed
-                    width: double.infinity,
-                    child:
-                        _videoController.value.isInitialized
-                            ? ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: VideoPlayer(_videoController),
-                            )
-                            : Container(
-                              color: Colors.black12,
-                              child: Center(child: CircularProgressIndicator()),
-                            ),
-                  ),
-                ),
-                SizedBox(height: 16),
-
-                // Shop by Gender Section
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Shop by Gender',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.brown,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      GenderCategory(
-                        title: 'Men',
-                        imagePath: 'assets/men.webp',
-                      ),
-                      GenderCategory(
-                        title: 'Women',
-                        imagePath: 'assets/women.jpg',
-                      ),
-                      GenderCategory(
-                        title: 'Children',
-                        imagePath: 'assets/children.jpg',
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),
@@ -527,28 +400,53 @@ class _HomePageState extends State<HomePage> {
               top: 0,
               left: 0,
               right: 0,
-              child: Container(
-                color: Colors.white,
-                padding: EdgeInsets.all(16.0),
-                child: TextField(
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: Colors.grey.shade200,
-                    hintText: 'Search for jewellery',
-                    prefixIcon: Icon(Icons.search, color: Colors.brown),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30),
-                      borderSide: BorderSide.none,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) {
+                      _filterProducts(value);
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Search for products...',
+                      hintStyle: const TextStyle(
+                        color: Colors.grey,
+                        fontSize: 15,
+                      ),
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      suffixIcon:
+                          _searchController.text.isNotEmpty
+                              ? IconButton(
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: Colors.grey,
+                                ),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  _filterProducts('');
+                                },
+                              )
+                              : null,
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                   ),
-                  onSubmitted: (value) {
-                    // Handle search logic
-                    setState(() {
-                      _isSearchActive =
-                          false; // Close search box after submission
-                    });
-                  },
                 ),
               ),
             ),
@@ -569,13 +467,23 @@ class _HomePageState extends State<HomePage> {
 class BannerCard extends StatelessWidget {
   final String imagePath;
 
-  BannerCard({required this.imagePath});
+  const BannerCard({required this.imagePath, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: Image.asset(imagePath, fit: BoxFit.cover, width: double.infinity),
+      borderRadius: BorderRadius.circular(4),
+      child: SizedBox.expand(
+        child: Image.network(
+          imagePath,
+          fit: BoxFit.fill,
+          errorBuilder:
+              (context, error, stackTrace) => Container(
+                color: Colors.grey[200],
+                child: Icon(Icons.broken_image, color: Colors.grey, size: 60),
+              ),
+        ),
+      ),
     );
   }
 }
@@ -585,33 +493,17 @@ class CategoryItem extends StatelessWidget {
   final String imagePath;
   final String categoryId;
 
-  CategoryItem({
+  const CategoryItem({
     required this.title,
     required this.imagePath,
     required this.categoryId,
+    super.key,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // if (title == 'Rings') {
-        //   Navigator.push(
-        //     context,
-        //     MaterialPageRoute(builder: (context) => RingsPage()),
-        //   );
-        // } else if (title == 'Earrings') {
-        //   Navigator.push(
-        //     context,
-        //     MaterialPageRoute(builder: (context) => EarringsPage()),
-        //   );
-        // } else if (title == 'Necklaces') {
-        //   Navigator.push(
-        //     context,
-        //     MaterialPageRoute(builder: (context) => NecklacesPage()),
-        //   );
-        // }
-
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -622,9 +514,28 @@ class CategoryItem extends StatelessWidget {
       },
       child: Column(
         children: [
-          CircleAvatar(radius: 40, backgroundImage: AssetImage(imagePath)),
-          SizedBox(height: 8),
-          Text(title, style: TextStyle(fontSize: 14, color: Colors.brown)),
+          CircleAvatar(
+            radius: 40,
+            backgroundColor: Colors.grey[200],
+            backgroundImage: NetworkImage(imagePath),
+            onBackgroundImageError: (_, __) {
+              // Handles broken image gracefully
+            },
+            child:
+                imagePath.isEmpty
+                    ? Icon(Icons.broken_image, size: 40, color: Colors.brown)
+                    : null,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.brown,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
@@ -659,76 +570,103 @@ class GenderCategory extends StatelessWidget {
 
 class ProductCard extends StatelessWidget {
   final String name;
-  final String price;
-  final String originalPrice;
-  final String imagePath;
+  final String imageUrl;
+  final String productId; // ✅ Add this
 
-  ProductCard({
+  const ProductCard({
+    Key? key,
     required this.name,
-    required this.price,
-    required this.originalPrice,
-    required this.imagePath,
-  });
+    required this.imageUrl,
+    required this.productId, // ✅ Require it
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // Navigate to DetailsPage
         Navigator.push(
           context,
           MaterialPageRoute(
             builder:
-                (context) =>
-                    DetailsPage(name: name, price: price, imagePath: imagePath),
+                (context) => DetailsPage(
+                  productId: productId, // ✅ Pass dynamic productId
+                  imagePath: imageUrl,
+                ),
           ),
         );
       },
-      child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        elevation: 2,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
-                child: Image.asset(
-                  imagePath,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                ),
-              ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 4,
+              offset: Offset(0, 2),
             ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Image with NEW label
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                  child: Image.network(
+                    imageUrl,
+                    height: 180,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder:
+                        (context, error, stackTrace) => Container(
+                          height: 180,
+                          width: double.infinity,
+                          color: Colors.grey[200],
+                          child: Icon(
+                            Icons.broken_image,
+                            size: 80,
+                            color: Colors.grey,
+                          ),
+                        ),
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'NEW',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            // Product Name
             Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.brown,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    price,
-                    style: TextStyle(fontSize: 14, color: Colors.green),
-                  ),
-                  Text(
-                    originalPrice,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                      decoration: TextDecoration.lineThrough,
-                    ),
-                  ),
-                ],
+              padding: const EdgeInsets.all(8),
+              child: Text(
+                name,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -749,22 +687,22 @@ class ChoiceItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        if (title == 'Diamond') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => DiamondJewelleryPage()),
-          );
-        } else if (title == 'Gold') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => GoldJewelleryPage()),
-          );
-        } else if (title == 'Silver') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => SilverJewelleryPage()),
-          );
-        }
+        // if (title == 'Diamond') {
+        //   Navigator.push(
+        //     context,
+        //     MaterialPageRoute(builder: (context) => DiamondJewelleryPage()),
+        //   );
+        // } else if (title == 'Gold') {
+        //   Navigator.push(
+        //     context,
+        //     MaterialPageRoute(builder: (context) => GoldJewelleryPage()),
+        //   );
+        // } else if (title == 'Silver') {
+        //   Navigator.push(
+        //     context,
+        //     MaterialPageRoute(builder: (context) => SilverJewelleryPage()),
+        //   );
+        // }
       },
       child: Column(
         children: [
@@ -872,6 +810,7 @@ class _AnimatedSectionState extends State<AnimatedSection>
   @override
   void dispose() {
     _controller.dispose();
+
     super.dispose();
   }
 }
@@ -885,64 +824,109 @@ class AppDrawer extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DrawerHeader(
-              decoration: BoxDecoration(color: Colors.brown.shade100),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 32,
-                    backgroundImage: AssetImage(
-                      'assets/profile_picture.jpg',
-                    ), // Use your logo or user image
-                  ),
-                  SizedBox(width: 16),
-                  Text(
-                    'Welcome!',
-                    style: TextStyle(
-                      color: Colors.brown,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.brown.shade100, Colors.brown.shade200],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      height: 80,
+                      width: 80,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.brown.withOpacity(0.3),
+                            blurRadius: 6,
+                            offset: Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Image.asset(
+                          'assets/Sri_Chandra_Jewelryn_webvvv.png',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    Text(
+                      'Sri Chandra Jewelers',
+                      style: TextStyle(
+                        color: Colors.brown.shade700,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Elegance in Every Detail',
+                      style: TextStyle(
+                        color: Colors.brown.shade400,
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
+
             ListTile(
               leading: Icon(Icons.home, color: Colors.brown),
               title: Text('Home'),
               onTap: () {
-                Navigator.pop(context);
+                Navigator.pop(context); // ✅ Close drawer only
               },
             ),
+
             ListTile(
               leading: Icon(Icons.category, color: Colors.brown),
               title: Text('Categories'),
               onTap: () {
-                // Navigate to categories or scroll to categories section
-                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => CategoryPage()),
+                );
               },
             ),
             ListTile(
               leading: Icon(Icons.favorite, color: Colors.brown),
               title: Text('Wishlist'),
               onTap: () {
-                // Navigate to wishlist
-                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => OrdersPage()),
+                );
               },
             ),
             ListTile(
               leading: Icon(Icons.shopping_bag, color: Colors.brown),
               title: Text('My Orders'),
               onTap: () {
-                // Navigate to orders
-                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => OrdersPage()),
+                );
               },
             ),
             ListTile(
               leading: Icon(Icons.person, color: Colors.brown),
               title: Text('Profile'),
               onTap: () {
-                // Navigate to profile
-                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => ProfilePage()),
+                );
               },
             ),
             Divider(),
@@ -954,14 +938,26 @@ class AppDrawer extends StatelessWidget {
                 Navigator.pop(context);
               },
             ),
-            ListTile(
-              leading: Icon(Icons.logout, color: Colors.brown),
-              title: Text('Logout'),
-              onTap: () {
-                // Handle logout
-                Navigator.pop(context);
-              },
-            ),
+            // ListTile(
+            //   leading: Icon(Icons.logout, color: Colors.brown),
+            //   title: Text('Logout'),
+            //   onTap: () async {
+            //     // First, close the drawer
+            //     Navigator.of(context).pop();
+
+            //     // Clear shared preferences
+            //     final prefs = await SharedPreferences.getInstance();
+            //     await prefs.remove('user_id');
+
+            //     // Navigate to login screen safely after drawer and preferences are cleared
+            //     Future.delayed(Duration(milliseconds: 300), () {
+            //       Navigator.of(context).pushAndRemoveUntil(
+            //         MaterialPageRoute(builder: (context) => LoginScreen()),
+            //         (route) => false,
+            //       );
+            //     });
+            //   },
+            // ),
           ],
         ),
       ),

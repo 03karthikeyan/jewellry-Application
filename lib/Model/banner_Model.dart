@@ -5,9 +5,16 @@ class BannerModel {
   BannerModel({required this.title, required this.image});
 
   factory BannerModel.fromJson(Map<String, dynamic> json) {
-    return BannerModel(
-      title: json['title'],
-      image: 'http://pheonixconstructions.com/' + json['image'],
-    );
+    String rawImage = json['image'] ?? '';
+
+    // Convert escaped slashes from API response (e.g. https:\/\/...)
+    rawImage = rawImage.replaceAll(r'\/', '/');
+
+    // Ensure full valid URL
+    if (!rawImage.startsWith('http')) {
+      rawImage = 'https://pheonixconstructions.com/$rawImage';
+    }
+
+    return BannerModel(title: json['title'] ?? '', image: rawImage.trim());
   }
 }

@@ -20,6 +20,87 @@ class ShimmerLoading extends StatelessWidget {
   }
 }
 
+class ShimmerLoadingCategory extends StatelessWidget {
+  const ShimmerLoadingCategory({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 90, // Height for horizontal avatar list
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal, // 👈 Horizontal scroll
+        itemCount: 8,
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Shimmer.fromColors(
+              baseColor: Colors.grey.shade400, // 🩶 Silver base tone
+              highlightColor: Colors.grey.shade100, // 💫 Soft light shimmer
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // 🟣 Circular avatar shimmer
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // 🩶 Text shimmer below avatar
+                  Container(
+                    width: 50,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+
+class ShimmerLoadingBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 180, // height of your banner
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: 5, // number of shimmer banners
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: Shimmer.fromColors(
+              baseColor: Colors.grey.shade300, // silver base
+              highlightColor: Colors.grey.shade100, // lighter highlight
+              child: Container(
+                width: 300, // width of each banner
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+
 class ShimmerLoadingFilter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {

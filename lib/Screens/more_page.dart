@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:sri_chandra_jewel/Screens/login_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MorePage extends StatelessWidget {
   @override
@@ -10,17 +12,14 @@ class MorePage extends StatelessWidget {
         centerTitle: true,
         title: Text(
           'More',
-          style: TextStyle(
-            color: Colors.brown,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.brown, fontWeight: FontWeight.bold),
         ),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.brown),
-          onPressed: () {
-            Navigator.pop(context); // Navigate back
-          },
-        ),
+        // leading: IconButton(
+        //   icon: Icon(Icons.arrow_back, color: Colors.brown),
+        //   onPressed: () {
+        //     Navigator.pop(context); // Navigate back
+        //   },
+        // ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -99,47 +98,64 @@ class MorePage extends StatelessWidget {
             ),
 
             // Logout Button
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red, // Button color
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: EdgeInsets.symmetric(vertical: 14),
-                minimumSize: Size(double.infinity, 48),
-              ),
-              onPressed: () {
-                // Handle Logout
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: Text('Logout'),
-                    content: Text('Are you sure you want to log out?'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: Text('Cancel'),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          // Perform logout action and navigate to login screen
-                          Navigator.pop(context); // Close dialog
-                        },
-                        child: Text('Logout'),
-                      ),
-                    ],
-                  ),
-                );
-              },
-              child: Text(
-                'LOGOUT',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ),
+            // ElevatedButton(
+            //   style: ElevatedButton.styleFrom(
+            //     backgroundColor: Colors.red,
+            //     shape: RoundedRectangleBorder(
+            //       borderRadius: BorderRadius.circular(8),
+            //     ),
+            //     padding: EdgeInsets.symmetric(vertical: 14),
+            //     minimumSize: Size(double.infinity, 48),
+            //   ),
+            //   onPressed: () {
+            //     // Show confirmation dialog
+            //     showDialog(
+            //       context: context,
+            //       builder:
+            //           (context) => AlertDialog(
+            //             title: Text('Logout'),
+            //             content: Text('Are you sure you want to log out?'),
+            //             actions: [
+            //               TextButton(
+            //                 onPressed:
+            //                     () => Navigator.pop(context), // Close dialog
+            //                 child: Text('Cancel'),
+            //               ),
+            //               TextButton(
+            //                 onPressed: () async {
+            //                   // Close the dialog first
+            //                   Navigator.of(context, rootNavigator: true).pop();
+
+            //                   // Clear user_id from SharedPreferences
+            //                   final prefs =
+            //                       await SharedPreferences.getInstance();
+            //                   await prefs.remove('user_id');
+
+            //                   // Navigate to login and clear all previous routes
+            //                   WidgetsBinding.instance.addPostFrameCallback((_) {
+            //                     Navigator.of(context).pushAndRemoveUntil(
+            //                       MaterialPageRoute(
+            //                         builder: (context) => LoginScreen(),
+            //                       ),
+            //                       (route) => false,
+            //                     );
+            //                   });
+            //                 },
+            //                 child: Text('Logout'),
+            //               ),
+            //             ],
+            //           ),
+            //     );
+            //   },
+            //   child: Text(
+            //     'LOGOUT',
+            //     style: TextStyle(
+            //       fontSize: 16,
+            //       fontWeight: FontWeight.bold,
+            //       color: Colors.white,
+            //     ),
+            //   ),
+            // ),
           ],
         ),
       ),
@@ -163,20 +179,14 @@ class MoreOptionCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Card(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         elevation: 2,
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                icon,
-                size: 40,
-                color: Colors.brown,
-              ),
+              Icon(icon, size: 40, color: Colors.brown),
               SizedBox(height: 8),
               Text(
                 title,
